@@ -50,6 +50,7 @@ Run Browserify:
 ```shell
 mkdir dist
 node_modules/.bin/browserify js/index > dist/bundle.js
+```
 
 Load the bundle on a webpage, `demo.html`:
 ```html
