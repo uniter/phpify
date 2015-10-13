@@ -43,6 +43,6 @@ describe('Transformer', function () {
             .returns('(function () { return "transpiler result"; }());');
         this.content = '<?php print "Hello!";';
 
-        expect(this.callTransform()).to.equal('(function () { return "transpiler result"; }());');
+        expect(this.callTransform()).to.equal('module.exports = (function () { return "transpiler result"; }());');
     });
 });

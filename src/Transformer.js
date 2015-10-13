@@ -29,6 +29,8 @@ Transformer.prototype.transform = function (config, content, file) {
         'runtimePath': require.resolve('phpruntime')
     });
 
+    js = 'module.exports = ' + js;
+
     return js;
 };
 
