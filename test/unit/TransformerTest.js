@@ -45,4 +45,15 @@ describe('Transformer', function () {
 
         expect(this.callTransform()).to.equal('module.exports = (function () { return "transpiler result"; }());');
     });
+
+    it('should pass phpToJS options through to phpToJS', function () {
+        this.config.phpToJS = {myOption: 123};
+
+        this.callTransform();
+
+        expect(this.phpToJS.transpile).to.have.been.calledWith(
+            sinon.match.any,
+            sinon.match({myOption: 123})
+        );
+    });
 });

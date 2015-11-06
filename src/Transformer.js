@@ -9,6 +9,8 @@
 
 'use strict';
 
+var _ = require('lodash');
+
 function Transformer(phpParser, phpToJS) {
     this.phpParser = phpParser;
     this.phpToJS = phpToJS;
@@ -25,9 +27,9 @@ Transformer.prototype.transform = function (config, content, file) {
 
     phpAST = transformer.phpParser.parse(content);
 
-    js = transformer.phpToJS.transpile(phpAST, {
+    js = transformer.phpToJS.transpile(phpAST, _.extend({
         'runtimePath': require.resolve('phpruntime')
-    });
+    }, config.phpToJS));
 
     js = 'module.exports = ' + js;
 

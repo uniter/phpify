@@ -23,7 +23,7 @@
   "main": "index",
   "scripts": {
     "jshint": "jshint .",
-    "mocha": "mocha --recursive test/",
+    "mocha": "mocha -r test/harness --recursive test/",
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
