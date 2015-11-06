@@ -28,7 +28,7 @@ Transformer.prototype.transform = function (config, content, file) {
     phpAST = transformer.phpParser.parse(content);
 
     js = transformer.phpToJS.transpile(phpAST, _.extend({
-        'runtimePath': require.resolve('phpruntime')
+        'runtimePath': __dirname + '/../node_modules/phpruntime'
     }, config.phpToJS));
 
     js = 'module.exports = ' + js;
