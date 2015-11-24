@@ -28,7 +28,8 @@ describe('Transformer', function () {
         this.phpToJS = {
             transpile: sinon.stub()
         };
-        this.transformer = new Transformer(this.phpParser, this.phpToJS);
+        this.resolveRequire = sinon.stub();
+        this.transformer = new Transformer(this.phpParser, this.phpToJS, this.resolveRequire);
 
         this.callTransform = function () {
             return this.transformer.transform(this.config, this.content, this.file);
@@ -54,6 +55,18 @@ describe('Transformer', function () {
         expect(this.phpToJS.transpile).to.have.been.calledWith(
             sinon.match.any,
             sinon.match({myOption: 123})
+        );
+    });
+
+    it('should pass the dirname of the resolved PHPRuntime lib through to PHPToJS', function () {
+        this.resolveRequire.withArgs('phpruntime').returns('/path/to/the/runtime/index.js');
+        this.config.phpToJS = {myOption: 123};
+
+        this.callTransform();
+
+        expect(this.phpToJS.transpile).to.have.been.calledWith(
+            sinon.match.any,
+            sinon.match({runtimePath: '/path/to/the/runtime'})
         );
     });
 });

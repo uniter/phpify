@@ -13,7 +13,7 @@ var Transformer = require('./src/Transformer'),
     phpParser = require('phptoast').create(),
     phpToJS = require('phptojs'),
     transformTools = require('browserify-transform-tools'),
-    transformer = new Transformer(phpParser, phpToJS);
+    transformer = new Transformer(phpParser, phpToJS, require.resolve);
 
 module.exports = transformTools.makeStringTransform(
     'phpify',

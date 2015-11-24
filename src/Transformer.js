@@ -9,11 +9,13 @@
 
 'use strict';
 
-var _ = require('lodash');
+var _ = require('lodash'),
+    path = require('path');
 
-function Transformer(phpParser, phpToJS) {
+function Transformer(phpParser, phpToJS, resolveRequire) {
     this.phpParser = phpParser;
     this.phpToJS = phpToJS;
+    this.resolveRequire = resolveRequire;
 }
 
 Transformer.prototype.transform = function (config, content, file) {
@@ -28,7 +30,7 @@ Transformer.prototype.transform = function (config, content, file) {
     phpAST = transformer.phpParser.parse(content);
 
     js = transformer.phpToJS.transpile(phpAST, _.extend({
-        'runtimePath': __dirname + '/../node_modules/phpruntime'
+        'runtimePath': path.dirname(transformer.resolveRequire('phpruntime'))
     }, config.phpToJS));
 
     js = 'module.exports = ' + js;
