@@ -30,8 +30,8 @@
     "browserify-transform-tools": "^1.4.2",
     "lodash": "^3.10.1",
     "phpruntime": "~5",
-    "phptoast": "~3",
-    "phptojs": "~3",
+    "phptoast": "~4",
+    "phptojs": "~4",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
