@@ -41,9 +41,9 @@ $doubleIt = function ($num) {
 return $doubleIt; 
 ```
 
-Call from JS module `js/index.js`:
+Call from JS module `index.js`:
 ```javascript
-var doubleItModule = require('./src/MyApp/doubleIt.php')();
+var doubleItModule = require('./php/src/MyApp/doubleIt.php')();
 
 doubleItModule.execute().then(function (doubleIt) {
     console.log('Double 4 is ' + doubleIt(4));
@@ -53,7 +53,7 @@ doubleItModule.execute().then(function (doubleIt) {
 Run Browserify:
 ```shell
 mkdir dist
-node_modules/.bin/browserify js/index > dist/bundle.js
+node_modules/.bin/browserify index > dist/bundle.js
 ```
 
 Load the bundle on a webpage, `demo.html`:
@@ -61,6 +61,8 @@ Load the bundle on a webpage, `demo.html`:
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8">
+
         <title>PHPify demo</title>
     </head>
     <body>
@@ -75,6 +77,8 @@ and open `demo.html` in a browser.
 
 Complex usage (compiling a Composer app with the Symfony EventDispatcher component)
 -----------------------------------------------------------------------------------
+
+> To avoid lots of typing, you can check out the source for this section here: https://github.com/uniter/event-dispatcher-demo
 
 Install the Symfony [`EventDispatcher` component](http://symfony.com/doc/current/components/event_dispatcher.html)
 ```shell
@@ -112,6 +116,9 @@ namespace MyApp;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
+// Load Composer's autoloader
+require_once __DIR__ . '/../../../vendor/autoload.php';
+
 $eventDispatcher = new EventDispatcher();
 $eventDispatcher->addListener('my.event', function () {
     print 'Listener called!';
@@ -122,15 +129,15 @@ print 'and...';
 $eventDispatcher->dispatch('my.event');
 ```
 
-Call from JS module `js/index.js`:
+Call from JS module `index.js`:
 ```javascript
-var dispatchItModule = require('./src/MyApp/dispatchIt.php')();
+var dispatchItModule = require('./php/src/MyApp/dispatchIt.php')();
 
 // Hook stdout and stderr up to the DOM
-phpEngine.getStdout().on('data', function (data) {
+dispatchItModule.getStdout().on('data', function (data) {
     document.body.insertAdjacentHTML('beforeEnd', data + '<br>');
 });
-phpEngine.getStderr().on('data', function (data) {
+dispatchItModule.getStderr().on('data', function (data) {
     document.body.insertAdjacentHTML('beforeEnd', data + '<br>');
 });
 
@@ -140,7 +147,7 @@ dispatchItModule.execute();
 Run Browserify:
 ```shell
 mkdir dist
-node_modules/.bin/browserify js/index > dist/bundle.js
+node_modules/.bin/browserify index > dist/bundle.js
 ```
 
 Load the bundle on a webpage, `demo.html`:
@@ -148,6 +155,8 @@ Load the bundle on a webpage, `demo.html`:
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8">
+
         <title>PHPify demo</title>
     </head>
     <body>
