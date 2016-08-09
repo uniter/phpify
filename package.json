@@ -30,6 +30,7 @@
     "browserify-transform-tools": "^1.4.2",
     "globby": "^6.0.0",
     "microdash": "~1",
+    "nowdoc": "~1.0",
     "phpruntime": "~5",
     "phptoast": "~4",
     "phptojs": "~4",
@@ -39,7 +40,6 @@
     "chai": "^2.3.0",
     "jshint": "^2.8.0",
     "mocha": "^2.2.5",
-    "nowdoc": "~1.0",
     "sinon": "~1.15",
     "sinon-chai": "^2.7.0"
   },
