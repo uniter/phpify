@@ -126,6 +126,14 @@ Call from JS module `js/index.js`:
 ```javascript
 var dispatchItModule = require('./src/MyApp/dispatchIt.php')();
 
+// Hook stdout and stderr up to the DOM
+phpEngine.getStdout().on('data', function (data) {
+    document.body.insertAdjacentHTML('beforeEnd', data + '<br>');
+});
+phpEngine.getStderr().on('data', function (data) {
+    document.body.insertAdjacentHTML('beforeEnd', data + '<br>');
+});
+
 dispatchItModule.execute();
 ```
 
