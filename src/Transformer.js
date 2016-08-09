@@ -9,33 +9,149 @@
 
 'use strict';
 
-var _ = require('lodash'),
+var _ = require('microdash'),
+    INCLUDE = 'include',
+    SYNC = 'sync',
+    nowdoc = require('nowdoc'),
     path = require('path');
 
-function Transformer(phpParser, phpToJS, resolveRequire) {
+/**
+ * Transforms a PHP module to a CommonJS module suitable for bundling for the browser
+ * eg. with Browserify or Webpack
+ *
+ * @param {Object} phpParser
+ * @param {Object} phpToJS
+ * @param {Function} resolveRequire
+ * @param {Object} globby
+ * @constructor
+ */
+function Transformer(phpParser, phpToJS, resolveRequire, globby) {
+    /**
+     * @type {null}
+     */
+    this.entryFile = null;
+    /**
+     * @type {Object}
+     */
+    this.globby = globby;
+    /**
+     * @type {Object}
+     */
     this.phpParser = phpParser;
+    /**
+     * @type {Object}
+     */
     this.phpToJS = phpToJS;
+    /**
+     * @type {Function}
+     */
     this.resolveRequire = resolveRequire;
 }
 
-Transformer.prototype.transform = function (config, content, file) {
-    var transformer = this,
-        phpAST,
-        js;
+_.extend(Transformer.prototype, {
+    /**
+     * Transforms the specified PHP module code to a CommonJS module
+     *
+     * @param {Object} config
+     * @param {string} content
+     * @param {string} file
+     * @param {string} configDir
+     * @returns {string}
+     */
+    transform: function (config, content, file, configDir) {
+        var transformer = this,
+            phpToJSConfig = config.phpToJS || {},
+            apiPath = path.dirname(transformer.resolveRequire('phpify')) +
+                '/api' +
+                (phpToJSConfig[SYNC] ? '/sync' : ''),
+            js,
+            runtimePath = path.dirname(transformer.resolveRequire('phpruntime'));
 
-    // Tell the parser the path to the current file
-    // so it can be included in error messages
-    transformer.phpParser.getState().setPath(file);
+        function compileModule(content, filePath) {
+            var phpAST;
 
-    phpAST = transformer.phpParser.parse(content);
+            // Tell the parser the path to the current file
+            // so it can be included in error messages
+            transformer.phpParser.getState().setPath(filePath);
 
-    js = transformer.phpToJS.transpile(phpAST, _.extend({
-        'runtimePath': path.dirname(transformer.resolveRequire('phpruntime'))
-    }, config.phpToJS));
+            phpAST = transformer.phpParser.parse(content);
 
-    js = 'module.exports = ' + js;
+            return transformer.phpToJS.transpile(
+                phpAST,
+                _.extend(
+                    {
+                        'runtimePath': runtimePath
+                    },
+                    phpToJSConfig
+                )
+            ).replace(/;$/, '');
+        }
 
-    return js;
-};
+        function createInit() {
+            var globPaths = _.map(phpToJSConfig[INCLUDE] || [], function (path) {
+                    return configDir + '/' + path;
+                }),
+                files = transformer.globby.sync(globPaths),
+                phpModuleFactories = [];
+
+            _.each(files, function (filePath) {
+                var configRelativePath = path.relative(configDir, filePath),
+                    // `./` is required for Browserify to correctly resolve relative paths -
+                    // paths starting with no dot or slash, eg. `Demo/file.php` were not being found
+                    requirerRelativePath = './' + path.relative(path.dirname(file), filePath);
+
+                phpModuleFactories.push(
+                    'case handlePath(' + JSON.stringify(configRelativePath) + '): ' +
+                    'return require(' + JSON.stringify(requirerRelativePath) + ');'
+                );
+            });
+
+            return nowdoc(function () {/*<<<EOS
+require(${apiPath}).init(function (path, checkExistence) {
+    var exists = false;
+
+    function handlePath(aPath) {
+        if (!checkExistence) {
+            return aPath;
+        }
+
+        if (aPath === path) {
+            exists = true;
+        }
+
+        return null;
+    }
+
+    switch (path) {
+    ${switchCases}
+    }
+
+    return checkExistence ? exists : null;
+});
+EOS*/;}, { // jshint ignore:line
+        apiPath: JSON.stringify(apiPath),
+        switchCases: phpModuleFactories.join('\n    ')
+    });
+        }
+
+        if (transformer.entryFile === null) {
+            transformer.entryFile = file;
+
+            js = createInit();
+        } else {
+            js = 'require(' + JSON.stringify(transformer.entryFile) + ');';
+        }
+
+        js += '\nmodule.exports = require(' +
+            JSON.stringify(apiPath) +
+            ').load(' +
+            JSON.stringify(path.relative(configDir, file)) +
+            ', ' +
+            compileModule(content, path.relative(configDir, file)) +
+            ');';
+
+        return js;
+    }
+});
 
 module.exports = Transformer;

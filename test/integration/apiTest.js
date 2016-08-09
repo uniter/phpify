@@ -9,11 +9,22 @@
 
 'use strict';
 
-var expect = require('chai').expect,
-    phpify = require('../..');
+var asyncAPI = require('../../api/async'),
+    expect = require('chai').expect,
+    phpify = require('../..'),
+    syncAPI = require('../../api/sync'),
+    Loader = require('../../src/Loader');
 
-describe('Public API', function () {
-    it('should export a function', function () {
+describe('Public API integration', function () {
+    it('should export a function as the Browserify transform', function () {
         expect(phpify).to.be.a('function');
+    });
+
+    it('should export a Loader as the async API entrypoint', function () {
+        expect(asyncAPI).to.be.an.instanceOf(Loader);
+    });
+
+    it('should export a Loader as the sync API entrypoint', function () {
+        expect(syncAPI).to.be.an.instanceOf(Loader);
     });
 });

@@ -10,10 +10,11 @@
 'use strict';
 
 var Transformer = require('./src/Transformer'),
+    globby = require('globby'),
     phpParser = require('phptoast').create(),
     phpToJS = require('phptojs'),
     transformTools = require('browserify-transform-tools'),
-    transformer = new Transformer(phpParser, phpToJS, require.resolve);
+    transformer = new Transformer(phpParser, phpToJS, require.resolve, globby);
 
 module.exports = transformTools.makeStringTransform(
     'phpify',
@@ -23,6 +24,7 @@ module.exports = transformTools.makeStringTransform(
     },
     function (content, transformOptions, done) {
         var config = transformOptions.config,
+            configDir = transformOptions.configData.configDir,
             file = transformOptions.file;
 
         if (!config) {
@@ -30,7 +32,7 @@ module.exports = transformTools.makeStringTransform(
         }
 
         try {
-            content = transformer.transform(config, content, file);
+            content = transformer.transform(config, content, file, configDir);
         } catch (error) {
             done(error);
             return;

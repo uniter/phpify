@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "browserify-transform-tools": "^1.4.2",
-    "lodash": "^3.10.1",
+    "globby": "^6.0.0",
+    "microdash": "~1",
     "phpruntime": "~5",
     "phptoast": "~4",
     "phptojs": "~4",
