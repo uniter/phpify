@@ -39,7 +39,7 @@ return $doubleIt;
 
 Call from JS module `js/index.js`:
 ```javascript
-var doubleItModule = require('./src/MyApp/doubleIt.php');
+var doubleItModule = require('./src/MyApp/doubleIt.php')();
 
 doubleItModule.execute().then(function (doubleIt) {
     console.log('Double 4 is ' + doubleIt(4));
