@@ -12,18 +12,20 @@
 var expect = require('chai').expect,
     sinon = require('sinon'),
     API = require('../../src/API'),
-    FileSystem = require('../../src/FileSystem');
+    FileSystem = require('../../src/FileSystem'),
+    Performance = require('../../src/Performance');
 
 describe('API', function () {
     beforeEach(function () {
         this.FileSystem = sinon.stub();
         this.Loader = sinon.stub();
         this.createEnvironment = sinon.stub();
+        this.performance = sinon.createStubInstance(Performance);
         this.phpRuntime = {
             createEnvironment: this.createEnvironment
         };
 
-        this.api = new API(this.FileSystem, this.Loader, this.phpRuntime);
+        this.api = new API(this.FileSystem, this.Loader, this.phpRuntime, this.performance);
     });
 
     describe('createLoader()', function () {
@@ -42,6 +44,15 @@ describe('API', function () {
             expect(this.createEnvironment).to.have.been.calledOnce;
             expect(this.createEnvironment).to.have.been.calledWith(sinon.match({
                 include: sinon.match.typeOf('function')
+            }));
+        });
+
+        it('should create the Environment with the Performance abstraction', function () {
+            this.api.createLoader();
+
+            expect(this.createEnvironment).to.have.been.calledOnce;
+            expect(this.createEnvironment).to.have.been.calledWith(sinon.match({
+                performance: sinon.match.same(this.performance)
             }));
         });
 

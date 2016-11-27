@@ -9,11 +9,14 @@
 
 'use strict';
 
+/*global global */
 var API = require('../src/API'),
     FileSystem = require('../src/FileSystem'),
     Loader = require('../src/Loader'),
+    Performance = require('../src/Performance'),
+    performance = new Performance(Date, global),
     phpRuntime = require('phpruntime'),
-    api = new API(FileSystem, Loader, phpRuntime),
+    api = new API(FileSystem, Loader, phpRuntime, performance),
     loader = api.createLoader();
 
 module.exports = loader;

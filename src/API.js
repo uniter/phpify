@@ -17,9 +17,10 @@ var _ = require('microdash');
  * @param {class} FileSystem
  * @param {class} Loader
  * @param {Object} phpRuntime
+ * @param {Performance} performance
  * @constructor
  */
-function API(FileSystem, Loader, phpRuntime) {
+function API(FileSystem, Loader, phpRuntime, performance) {
     /**
      * @type {class}
      */
@@ -28,6 +29,10 @@ function API(FileSystem, Loader, phpRuntime) {
      * @type {class}
      */
     this.Loader = Loader;
+    /**
+     * @type {Performance}
+     */
+    this.performance = performance;
     /**
      * @type {Object}
      */
@@ -57,7 +62,8 @@ _.extend(API.prototype, {
                     }
 
                     promise.resolve(result);
-                }
+                },
+                performance: api.performance
             });
 
         return new api.Loader(fileSystem, environment);

@@ -17,7 +17,6 @@ var expect = require('chai').expect,
 describe('Transformer', function () {
     beforeEach(function () {
         this.config = {};
-        this.content = '';
         this.globby = {
             sync: sinon.stub()
         };
@@ -37,10 +36,10 @@ describe('Transformer', function () {
         this.resolveRequire.withArgs('phpify').returns('/path/to/node_modules/phpify/index.js');
         this.resolveRequire.withArgs('phpruntime').returns('/path/to/node_modules/phpruntime/index.js');
 
-        this.callTransform = function (file, configDir) {
+        this.callTransform = function (file, configDir, content) {
             return this.transformer.transform(
                 this.config,
-                this.content,
+                content || '',
                 file || '/path/to/my/file.js',
                 configDir || '/path/to/the/configdir'
             );
@@ -48,8 +47,61 @@ describe('Transformer', function () {
     });
 
     describe('for the entry file', function () {
-        it('should include the PHP module factory fetcher and entry module factory', function () {
-            var expectedJS = nowdoc(function () {/*<<<EOS
+        beforeEach(function () {
+            this.config.phpToJS = {
+                include: [
+                    'my/first/**/*.php',
+                    'my/second/**/*.php'
+                ]
+            };
+
+            this.globby.sync.withArgs([
+                '/path/to/the/configdir/my/first/**/*.php',
+                '/path/to/the/configdir/my/second/**/*.php'
+            ]).returns([
+                '/my/first/matched/file.js',
+                '/my/second/matched/file.js'
+            ]);
+        });
+
+        it('should return the result from the transpiler', function () {
+            expect(this.callTransform()).to.equal('(function () { return "transpiler result"; }())');
+        });
+
+        it('should pass phpToJS options through to phpToJS', function () {
+            this.config.phpToJS.myOption = 123;
+
+            this.callTransform();
+
+            expect(this.phpToJS.transpile).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match({myOption: 123})
+            );
+        });
+
+        it('should pass the path to the current file relative to the config dir through to PHPToJS', function () {
+            this.callTransform('/the/path/to/my/module.php', '/the/path/goes/here/to/config');
+
+            expect(this.phpToJS.transpile).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match({path: '../../../../to/my/module.php'})
+            );
+        });
+
+        it('should pass the dirname of the resolved PHPRuntime lib through to PHPToJS', function () {
+            this.resolveRequire.withArgs('phpruntime').returns('/path/to/the/runtime/index.js');
+            this.config.phpToJS = {myOption: 123};
+
+            this.callTransform();
+
+            expect(this.phpToJS.transpile).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match({runtimePath: '/path/to/the/runtime'})
+            );
+        });
+
+        it('should pass the prefix with PHP module factory fetcher and entry module factory through to PHPToJS', function () {
+            var expectedPrefixJS = nowdoc(function () {/*<<<EOS
 require("/path/to/node_modules/phpify/api").init(function (path, checkExistence) {
     var exists = false;
 
@@ -72,57 +124,40 @@ require("/path/to/node_modules/phpify/api").init(function (path, checkExistence)
 
     return checkExistence ? exists : null;
 });
-module.exports = require("/path/to/node_modules/phpify/api").load("../../my/file.js", (function () { return "transpiler result"; }()));
-EOS*/;}); // jshint ignore:line
-
-            this.globby.sync.withArgs([
-                '/path/to/the/configdir/my/first/**/*.php',
-                '/path/to/the/configdir/my/second/**/*.php'
-            ]).returns([
-                '/my/first/matched/file.js',
-                '/my/second/matched/file.js'
-            ]);
-
-            this.config.phpToJS = {
-                include: [
-                    'my/first/**/*.php',
-                    'my/second/**/*.php'
-                ]
-            };
-
-            expect(this.callTransform()).to.equal(expectedJS);
-        });
-
-        it('should pass phpToJS options through to phpToJS', function () {
-            this.config.phpToJS = {myOption: 123};
+module.exports = require("/path/to/node_modules/phpify/api").load("../../my/file.js",
+EOS*/;}) + ' '; // jshint ignore:line
 
             this.callTransform();
 
-            expect(this.phpToJS.transpile).to.have.been.calledWith(
-                sinon.match.any,
-                sinon.match({myOption: 123})
-            );
+            // We need to pass the prefix and suffix code through to PHPToJS separately
+            // so that it can calculate the source map line numbers correctly
+            expect(this.phpToJS.transpile.args[0][1]).to.have.property('prefix');
+            expect(this.phpToJS.transpile.args[0][1].prefix).to.equal(expectedPrefixJS);
         });
 
-        it('should pass the dirname of the resolved PHPRuntime lib through to PHPToJS', function () {
-            this.resolveRequire.withArgs('phpruntime').returns('/path/to/the/runtime/index.js');
-            this.config.phpToJS = {myOption: 123};
-
+        it('should pass the suffix through to PHPToJS', function () {
             this.callTransform();
 
-            expect(this.phpToJS.transpile).to.have.been.calledWith(
-                sinon.match.any,
-                sinon.match({runtimePath: '/path/to/the/runtime'})
-            );
+            expect(this.phpToJS.transpile.args[0][1]).to.have.property('suffix');
+            expect(this.phpToJS.transpile.args[0][1].suffix).to.equal(');');
+        });
+
+        it('should pass the source content for the source map through to PHPToJS', function () {
+            this.callTransform(null, null, '<?php $my = "source";');
+
+            expect(this.phpToJS.transpile.args[0][1].sourceMap).to.have.property('sourceContent');
+            expect(this.phpToJS.transpile.args[0][1].sourceMap.sourceContent).to.equal('<?php $my = "source";');
         });
     });
 
     describe('for non-entry files', function () {
-        it('should include a require of the entry module and then this non-entry module factory', function () {
-            var expectedJS = nowdoc(function () {/*<<<EOS
-require("/path/to/my/file.js");
-module.exports = require("/path/to/node_modules/phpify/api").load("../../my/second/file.js", (function () { return "transpiler result"; }()));
-EOS*/;}); // jshint ignore:line
+        beforeEach(function () {
+            this.config.phpToJS = {
+                include: [
+                    'my/first/**/*.php',
+                    'my/second/**/*.php'
+                ]
+            };
 
             this.globby.sync.withArgs([
                 '/path/to/the/configdir/my/first/**/*.php',
@@ -132,21 +167,22 @@ EOS*/;}); // jshint ignore:line
                 '/my/second/matched/file.js'
             ]);
 
-            this.config.phpToJS = {
-                include: [
-                    'my/first/**/*.php',
-                    'my/second/**/*.php'
-                ]
-            };
+            this.transformInitialEntryFile = function () {
+                this.callTransform('/path/to/my/file.js'); // Initial entry file transform
 
-            this.callTransform('/path/to/my/file.js'); // Initial entry file transform
+                this.phpToJS.transpile.reset();
+            }.bind(this);
+        });
 
-            expect(this.callTransform('/path/to/my/second/file.js')).to.equal(expectedJS);
+        it('should return the result from the transpiler', function () {
+            this.transformInitialEntryFile();
+
+            expect(this.callTransform()).to.equal('(function () { return "transpiler result"; }())');
         });
 
         it('should pass phpToJS options through to phpToJS', function () {
             this.config.phpToJS = {myOption: 123};
-            this.callTransform('/path/to/my/file.js'); // Initial entry file transform
+            this.transformInitialEntryFile();
 
             this.callTransform('/path/to/my/second/file.js');
 
@@ -156,10 +192,21 @@ EOS*/;}); // jshint ignore:line
             );
         });
 
+        it('should pass the path to the current file relative to the config dir through to PHPToJS', function () {
+            this.transformInitialEntryFile();
+
+            this.callTransform('/the/path/to/my/module.php', '/the/path/goes/here/to/config');
+
+            expect(this.phpToJS.transpile).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match({path: '../../../../to/my/module.php'})
+            );
+        });
+
         it('should pass the dirname of the resolved PHPRuntime lib through to PHPToJS', function () {
             this.resolveRequire.withArgs('phpruntime').returns('/path/to/the/runtime/index.js');
             this.config.phpToJS = {myOption: 123};
-            this.callTransform('/path/to/my/file.js'); // Initial entry file transform
+            this.transformInitialEntryFile();
 
             this.callTransform('/path/to/my/second/file.js');
 
@@ -167,6 +214,39 @@ EOS*/;}); // jshint ignore:line
                 sinon.match.any,
                 sinon.match({runtimePath: '/path/to/the/runtime'})
             );
+        });
+
+        it('should pass the prefix with a require of the entry module and then this non-entry module factory', function () {
+            var expectedPrefixJS = nowdoc(function () {/*<<<EOS
+require("/path/to/my/file.js");
+module.exports = require("/path/to/node_modules/phpify/api").load("../../my/second/file.js",
+EOS*/;}) + ' '; // jshint ignore:line
+            this.transformInitialEntryFile();
+
+            this.callTransform('/path/to/my/second/file.js');
+
+            // We need to pass the prefix and suffix code through to PHPToJS separately
+            // so that it can calculate the source map line numbers correctly
+            expect(this.phpToJS.transpile.args[0][1]).to.have.property('prefix');
+            expect(this.phpToJS.transpile.args[0][1].prefix).to.equal(expectedPrefixJS);
+        });
+
+        it('should pass the suffix through to PHPToJS', function () {
+            this.transformInitialEntryFile();
+
+            this.callTransform('/path/to/my/second/file.js');
+
+            expect(this.phpToJS.transpile.args[0][1]).to.have.property('suffix');
+            expect(this.phpToJS.transpile.args[0][1].suffix).to.equal(');');
+        });
+
+        it('should pass the source content for the source map through to PHPToJS', function () {
+            this.transformInitialEntryFile();
+
+            this.callTransform('/path/to/my/second/file.js', null, '<?php $my = "source";');
+
+            expect(this.phpToJS.transpile.args[0][1].sourceMap).to.have.property('sourceContent');
+            expect(this.phpToJS.transpile.args[0][1].sourceMap.sourceContent).to.equal('<?php $my = "source";');
         });
     });
 });

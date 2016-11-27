@@ -11,7 +11,7 @@
 
 var Transformer = require('./src/Transformer'),
     globby = require('globby'),
-    phpParser = require('phptoast').create(),
+    phpParser = require('phptoast').create(null, {'captureAllOffsets': true}),
     phpToJS = require('phptojs'),
     transformTools = require('browserify-transform-tools'),
     transformer = new Transformer(phpParser, phpToJS, require.resolve, globby);

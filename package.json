@@ -29,6 +29,7 @@
   "dependencies": {
     "browserify-transform-tools": "^1.4.2",
     "globby": "^6.0.0",
+    "lie": "^3.0.1",
     "microdash": "~1",
     "nowdoc": "~1.0",
     "phpruntime": "~5",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "chai": "^2.3.0",
+    "chai-as-promised": "^5.1.0",
     "jshint": "^2.8.0",
     "mocha": "^2.2.5",
     "sinon": "~1.15",

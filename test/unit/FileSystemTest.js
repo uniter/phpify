@@ -58,10 +58,46 @@ describe('FileSystem', function () {
         });
     });
 
+    describe('open()', function () {
+        it('should be rejected as Streams are not supported', function () {
+            expect(this.fileSystem.open('/my/file.txt')).to.be.rejectedWith(
+                'Could not open "/my/file.txt" :: Streams are not currently supported by PHPify'
+            );
+        });
+    });
+
+    describe('openSync()', function () {
+        it('should throw as Streams are not supported', function () {
+            expect(function () {
+                this.fileSystem.openSync('/my/file.txt');
+            }.bind(this)).to.throw(
+                'Could not open "/my/file.txt" :: Streams are not currently supported by PHPify'
+            );
+        });
+    });
+
     describe('realPath()', function () {
         it('should resolve any parent directory symbols in the path', function () {
             expect(this.fileSystem.realPath('my/path/../to/a/../mod/u/le/../../file.js'))
                 .to.equal('my/to/mod/file.js');
+        });
+    });
+
+    describe('unlink()', function () {
+        it('should be rejected as file and folder deletion is currently not supported', function () {
+            expect(this.fileSystem.unlink('/my/file.txt')).to.be.rejectedWith(
+                'Could not delete "/my/file.txt" :: not currently supported by PHPify'
+            );
+        });
+    });
+
+    describe('unlinkSync()', function () {
+        it('should throw as file and folder deletion is currently not supported', function () {
+            expect(function () {
+                this.fileSystem.unlinkSync('/my/file.txt');
+            }.bind(this)).to.throw(
+                'Could not delete "/my/file.txt" :: not currently supported by PHPify'
+            );
         });
     });
 });

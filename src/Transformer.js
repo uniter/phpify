@@ -65,9 +65,11 @@ _.extend(Transformer.prototype, {
                 '/api' +
                 (phpToJSConfig[SYNC] ? '/sync' : ''),
             js,
-            runtimePath = path.dirname(transformer.resolveRequire('phpruntime'));
+            prefixJS,
+            runtimePath = path.dirname(transformer.resolveRequire('phpruntime')),
+            suffixJS;
 
-        function compileModule(content, filePath) {
+        function compileModule(content, filePath, prefix, suffix) {
             var phpAST;
 
             // Tell the parser the path to the current file
@@ -80,7 +82,13 @@ _.extend(Transformer.prototype, {
                 phpAST,
                 _.extend(
                     {
-                        'runtimePath': runtimePath
+                        'path': filePath,
+                        'runtimePath': runtimePath,
+                        'prefix': prefix,
+                        'suffix': suffix,
+                        'sourceMap': {
+                            'sourceContent': content
+                        }
                     },
                     phpToJSConfig
                 )
@@ -137,18 +145,19 @@ EOS*/;}, { // jshint ignore:line
         if (transformer.entryFile === null) {
             transformer.entryFile = file;
 
-            js = createInit();
+            prefixJS = createInit();
         } else {
-            js = 'require(' + JSON.stringify(transformer.entryFile) + ');';
+            prefixJS = 'require(' + JSON.stringify(transformer.entryFile) + ');';
         }
 
-        js += '\nmodule.exports = require(' +
+        prefixJS += '\nmodule.exports = require(' +
             JSON.stringify(apiPath) +
             ').load(' +
             JSON.stringify(path.relative(configDir, file)) +
-            ', ' +
-            compileModule(content, path.relative(configDir, file)) +
-            ');';
+            ', ';
+        suffixJS = ');';
+
+        js = compileModule(content, path.relative(configDir, file), prefixJS, suffixJS);
 
         return js;
     }

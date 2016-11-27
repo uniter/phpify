@@ -10,7 +10,8 @@
 'use strict';
 
 var _ = require('microdash'),
-    path = require('path');
+    path = require('path'),
+    Promise = require('lie');
 
 /**
  * Virtual FileSystem for use in the browser with compiled PHP modules
@@ -89,6 +90,28 @@ _.extend(FileSystem.prototype, {
     },
 
     /**
+     * Opens a Stream for the specified file asynchronously
+     *
+     * @param {string} filePath
+     * @returns {Promise} Resolves with a Stream for the file on success, rejects on failure
+     */
+    open: function (filePath) {
+        return new Promise(function (resolve, reject) {
+            reject(new Error('Could not open "' + filePath + '" :: Streams are not currently supported by PHPify'));
+        });
+    },
+
+    /**
+     * Opens a Stream for the specified file synchronously
+     *
+     * @param {string} filePath
+     * @returns {Stream}
+     */
+    openSync: function (filePath) {
+        throw new Error('Could not open "' + filePath + '" :: Streams are not currently supported by PHPify');
+    },
+
+    /**
      * Converts the specified module path to a full one,
      * normalizing any parent- or current-directory symbols
      *
@@ -99,6 +122,27 @@ _.extend(FileSystem.prototype, {
         filePath = path.normalize(filePath);
 
         return filePath;
+    },
+
+    /**
+     * Deletes a file or folder asynchronously
+     *
+     * @param {string} filePath
+     * @returns {Promise} Resolves on success, rejects on failure
+     */
+    unlink: function (filePath) {
+        return new Promise(function (resolve, reject) {
+            reject(new Error('Could not delete "' + filePath + '" :: not currently supported by PHPify'));
+        });
+    },
+
+    /**
+     * Deletes a file or folder synchronously
+     *
+     * @param {string} filePath
+     */
+    unlinkSync: function (filePath) {
+        throw new Error('Could not delete "' + filePath + '" :: not currently supported by PHPify');
     }
 });
 
