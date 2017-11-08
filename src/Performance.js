@@ -39,8 +39,10 @@ _.extend(Performance.prototype, {
         var performance = this;
 
         if (performance.global.performance) {
-            // Use millisecond-precise Performance API, if available
-            return performance.global.performance.timing.navigationStart + performance.global.performance.now();
+            // Use 5-microsecond-precise Performance API, if available
+            return (
+                performance.global.performance.timing.navigationStart + performance.global.performance.now()
+            ) * 1000;
         }
 
         // Fall back to fake microsecond accuracy (will be correct to the nearest millisecond)

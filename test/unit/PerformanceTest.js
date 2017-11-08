@@ -32,14 +32,16 @@ describe('Performance', function () {
 
     describe('getTimeInMicroseconds()', function () {
         it('should return the result from Window.performance.now() + navigationStart where supported', function () {
+            // Current time in milliseconds, accurate to the nearest microsecond
             this.nativePerformance.now.returns(1000000);
 
-            expect(this.performance.getTimeInMicroseconds()).to.equal(1000021);
+            expect(this.performance.getTimeInMicroseconds()).to.equal(1000021000);
         });
 
         it('should return the current time in us rounded to the nearest ms when not supported', function () {
             delete this.global.performance;
-            this.Date.prototype.getTime.returns(12345); // Current time in milliseconds
+            // Current time in milliseconds, accurate to the nearest millisecond
+            this.Date.prototype.getTime.returns(12345);
 
             expect(this.performance.getTimeInMicroseconds()).to.equal(12345000);
         });
