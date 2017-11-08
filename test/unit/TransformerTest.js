@@ -18,7 +18,7 @@ describe('Transformer', function () {
     beforeEach(function () {
         this.config = {};
         this.globby = {
-            sync: sinon.stub()
+            sync: sinon.stub().returns([])
         };
         this.parserState = {
             setPath: sinon.stub()
@@ -51,13 +51,15 @@ describe('Transformer', function () {
             this.config.phpToJS = {
                 include: [
                     'my/first/**/*.php',
-                    'my/second/**/*.php'
+                    'my/second/**/*.php',
+                    '!my/third/**/*.php'
                 ]
             };
 
             this.globby.sync.withArgs([
                 '/path/to/the/configdir/my/first/**/*.php',
-                '/path/to/the/configdir/my/second/**/*.php'
+                '/path/to/the/configdir/my/second/**/*.php',
+                '!/path/to/the/configdir/my/third/**/*.php'
             ]).returns([
                 '/my/first/matched/file.js',
                 '/my/second/matched/file.js'

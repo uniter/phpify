@@ -97,6 +97,12 @@ _.extend(Transformer.prototype, {
 
         function createInit() {
             var globPaths = _.map(phpToJSConfig[INCLUDE] || [], function (path) {
+                    if (/^!/.test(path)) {
+                        // Keep the exclamation mark (which marks paths to exclude)
+                        // at the beginning of the string
+                        return '!' + configDir + '/' + path.substr(1);
+                    }
+
                     return configDir + '/' + path;
                 }),
                 files = transformer.globby.sync(globPaths),
@@ -137,9 +143,9 @@ require(${apiPath}).init(function (path, checkExistence) {
     return checkExistence ? exists : null;
 });
 EOS*/;}, { // jshint ignore:line
-        apiPath: JSON.stringify(apiPath),
-        switchCases: phpModuleFactories.join('\n    ')
-    });
+                apiPath: JSON.stringify(apiPath),
+                switchCases: phpModuleFactories.join('\n    ')
+            });
         }
 
         if (transformer.entryFile === null) {
