@@ -39,8 +39,8 @@ describe('FileSystem', function () {
     });
 
     describe('isDirectory()', function () {
-        it('should always return true', function () {
-            expect(this.fileSystem.isDirectory('/my/dir/path')).to.be.true;
+        it('should always return false for now', function () {
+            expect(this.fileSystem.isDirectory('/my/dir/path')).to.be.false;
         });
     });
 

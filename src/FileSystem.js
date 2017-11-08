@@ -70,7 +70,7 @@ _.extend(FileSystem.prototype, {
      */
     isDirectory: function () {
         // TODO: Implement once we have support for non-PHP files in the VFS
-        return true;
+        return false;
     },
 
     /**
