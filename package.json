@@ -32,7 +32,7 @@
     "lie": "^3.1.1",
     "microdash": "~1",
     "nowdoc": "~1.0",
-    "phpruntime": "~5",
+    "phpruntime": "experimental",
     "phptoast": "~5",
     "phptojs": "~5",
     "require-resolve": "0.0.2"
