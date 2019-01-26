@@ -152,7 +152,7 @@ EOS*/;}, { // jshint ignore:line
         if (file === transformer.browserFsStubPath) {
             // The included module is the special virtual browser FS stub: output the FS switch()
             // as its only contents. It will be required by every other transformed PHP file,
-            // so that they have access to the virtual FS (see below)P
+            // so that they have access to the virtual FS (see below)
             // Doing it this way keeps the transformer stateless, which is needed for HappyPack support.
             return buildVirtualBrowserFs();
         }
