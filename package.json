@@ -29,18 +29,18 @@
   "dependencies": {
     "browserify-transform-tools": "^1.4.2",
     "globby": "^6.0.0",
-    "lie": "^3.1.1",
+    "lie": "^3.3.0",
     "microdash": "~1",
     "nowdoc": "~1.0",
-    "phpruntime": "^5.9.2-experimental.3",
+    "phpruntime": "^5.9.2-experimental.5",
     "phptoast": "^6.0.2",
-    "phptojs": "^6.1.0",
+    "phptojs": "^6.1.1",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
     "chai": "^2.3.0",
     "chai-as-promised": "^5.1.0",
-    "jshint": "^2.9.5",
+    "jshint": "^2.9.7",
     "mocha": "^2.2.5",
     "sinon": "~1.15",
     "sinon-chai": "^2.14.0"
