@@ -32,15 +32,15 @@
     "lie": "^3.3.0",
     "microdash": "~1",
     "nowdoc": "~1.0",
-    "phpruntime": "^5.9.2-experimental.5",
-    "phptoast": "^6.0.2",
+    "phpruntime": "^5.9.2-experimental.6",
+    "phptoast": "^6.0.3",
     "phptojs": "^6.1.1",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
     "chai": "^2.3.0",
     "chai-as-promised": "^5.1.0",
-    "jshint": "^2.9.7",
+    "jshint": "^2.10.1",
     "mocha": "^5.2.0",
     "sinon": "~1.15",
     "sinon-chai": "^2.14.0"
