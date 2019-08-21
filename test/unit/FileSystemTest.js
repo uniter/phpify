@@ -81,6 +81,11 @@ describe('FileSystem', function () {
             expect(this.fileSystem.realPath('my/path/../to/a/../mod/u/le/../../file.js'))
                 .to.equal('my/to/mod/file.js');
         });
+
+        it('should strip any leading forward-slash', function () {
+            expect(this.fileSystem.realPath('/my/path/../to/a/../mod/u/le/../../file.js'))
+                .to.equal('my/to/mod/file.js');
+        });
     });
 
     describe('unlink()', function () {
