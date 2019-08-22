@@ -1,5 +1,5 @@
 {
-  "version": "4.0.0",
+  "version": "4.0.1-experimental.6",
   "name": "phpify",
   "description": "Browserify transform for requiring PHP modules from JavaScript",
   "keywords": [
@@ -29,19 +29,19 @@
   "dependencies": {
     "browserify-transform-tools": "^1.4.2",
     "globby": "^6.0.0",
-    "lie": "^3.1.1",
+    "lie": "^3.3.0",
     "microdash": "~1",
     "nowdoc": "~1.0",
-    "phpruntime": "~5",
-    "phptoast": "~5",
-    "phptojs": "~5",
+    "phpruntime": "^6.0.1",
+    "phptoast": "^6.0.4",
+    "phptojs": "^6.1.2",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
     "chai": "^2.3.0",
     "chai-as-promised": "^5.1.0",
-    "jshint": "^2.9.5",
-    "mocha": "^2.2.5",
+    "jshint": "^2.10.2",
+    "mocha": "^5.2.0",
     "sinon": "~1.15",
     "sinon-chai": "^2.14.0"
   },

@@ -121,6 +121,9 @@ _.extend(FileSystem.prototype, {
     realPath: function (filePath) {
         filePath = path.normalize(filePath);
 
+        // Strip any leading slash, as the browser FS does not expect it
+        filePath = filePath.replace(/^\/+/, '');
+
         return filePath;
     },
 

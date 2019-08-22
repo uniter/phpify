@@ -23,13 +23,14 @@ var _ = require('microdash'),
  * @param {Object} phpToJS
  * @param {Function} resolveRequire
  * @param {Object} globby
+ * @param {string} browserFsStubPath
  * @constructor
  */
-function Transformer(phpParser, phpToJS, resolveRequire, globby) {
+function Transformer(phpParser, phpToJS, resolveRequire, globby, browserFsStubPath) {
     /**
-     * @type {null}
+     * @type {string}
      */
-    this.entryFile = null;
+    this.browserFsStubPath = browserFsStubPath;
     /**
      * @type {Object}
      */
@@ -95,7 +96,7 @@ _.extend(Transformer.prototype, {
             ).replace(/;$/, '');
         }
 
-        function createInit() {
+        function buildVirtualBrowserFs() {
             var globPaths = _.map(phpToJSConfig[INCLUDE] || [], function (path) {
                     if (/^!/.test(path)) {
                         // Keep the exclamation mark (which marks paths to exclude)
@@ -148,15 +149,16 @@ EOS*/;}, { // jshint ignore:line
             });
         }
 
-        if (transformer.entryFile === null) {
-            transformer.entryFile = file;
-
-            prefixJS = createInit();
-        } else {
-            prefixJS = 'require(' + JSON.stringify(transformer.entryFile) + ');';
+        if (file === transformer.browserFsStubPath) {
+            // The included module is the special virtual browser FS stub: output the FS switch()
+            // as its only contents. It will be required by every other transformed PHP file,
+            // so that they have access to the virtual FS (see below)
+            // Doing it this way keeps the transformer stateless, which is needed for HappyPack support.
+            return buildVirtualBrowserFs();
         }
 
-        prefixJS += '\nmodule.exports = require(' +
+        prefixJS = 'require(' + JSON.stringify(transformer.browserFsStubPath) + ');' +
+            '\nmodule.exports = require(' +
             JSON.stringify(apiPath) +
             ').load(' +
             JSON.stringify(path.relative(configDir, file)) +

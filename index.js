@@ -11,10 +11,12 @@
 
 var Transformer = require('./src/Transformer'),
     globby = require('globby'),
-    phpParser = require('phptoast').create(null, {'captureAllOffsets': true}),
+    path = require('path'),
+    phpParser = require('phptoast').create(null, {'captureAllBounds': true}),
     phpToJS = require('phptojs'),
     transformTools = require('browserify-transform-tools'),
-    transformer = new Transformer(phpParser, phpToJS, require.resolve, globby);
+    browserFsStubPath = path.resolve(__dirname + '/src/php/browser_fs_stub.php'),
+    transformer = new Transformer(phpParser, phpToJS, require.resolve, globby, browserFsStubPath);
 
 module.exports = transformTools.makeStringTransform(
     'phpify',
