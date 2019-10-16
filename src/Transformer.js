@@ -11,6 +11,7 @@
 
 var _ = require('microdash'),
     INCLUDE = 'include',
+    MODE = 'mode',
     SYNC = 'sync',
     nowdoc = require('nowdoc'),
     path = require('path');
@@ -62,9 +63,12 @@ _.extend(Transformer.prototype, {
     transform: function (config, content, file, configDir) {
         var transformer = this,
             phpToJSConfig = config.phpToJS || {},
+            mode = phpToJSConfig[SYNC] === true ?
+                'sync' :
+                (phpToJSConfig[MODE] || 'async'),
             apiPath = path.dirname(transformer.resolveRequire('phpify')) +
                 '/api' +
-                (phpToJSConfig[SYNC] ? '/sync' : ''),
+                (mode === 'async' ? '' : '/' + mode),
             js,
             prefixJS,
             runtimePath = path.dirname(transformer.resolveRequire('phpruntime')),

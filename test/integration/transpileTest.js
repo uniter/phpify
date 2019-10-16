@@ -77,12 +77,48 @@ describe('Transpilation integration', function () {
         expect(module.exports().execute().getNative()).to.equal(21);
     });
 
-    it('should transpile a simple PHP file to executable JS in asynchronous mode', function (done) {
+    it('should transpile a simple PHP file to executable JS in asynchronous mode using the "sync" option', function (done) {
         var compiledModule,
             exports = {},
             module = {exports: exports},
             transpiledJS;
         this.config.phpToJS.sync = false; // Use async mode
+        transpiledJS = this.transformer.transform(this.config, '<?php return 1001;', 'my/entry.php', this.configDir);
+        compiledModule = new Function('require', 'module', 'exports', transpiledJS);
+
+        compiledModule(this.hookedRequire, module, exports);
+
+        module.exports().execute().then(function (resultValue) {
+            expect(resultValue.getNative()).to.equal(1001);
+            done();
+        }, done).catch(done);
+    });
+
+    it('should transpile a simple PHP file to executable JS in asynchronous mode using the "mode" option', function (done) {
+        var compiledModule,
+            exports = {},
+            module = {exports: exports},
+            transpiledJS;
+        delete this.config.phpToJS.sync; // Use async mode
+        this.config.phpToJS.mode = 'async';
+        transpiledJS = this.transformer.transform(this.config, '<?php return 1001;', 'my/entry.php', this.configDir);
+        compiledModule = new Function('require', 'module', 'exports', transpiledJS);
+
+        compiledModule(this.hookedRequire, module, exports);
+
+        module.exports().execute().then(function (resultValue) {
+            expect(resultValue.getNative()).to.equal(1001);
+            done();
+        }, done).catch(done);
+    });
+
+    it('should transpile a simple PHP file to executable JS in Promise-synchronous mode using the "mode" option', function (done) {
+        var compiledModule,
+            exports = {},
+            module = {exports: exports},
+            transpiledJS;
+        delete this.config.phpToJS.sync; // Use async mode
+        this.config.phpToJS.mode = 'psync';
         transpiledJS = this.transformer.transform(this.config, '<?php return 1001;', 'my/entry.php', this.configDir);
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
