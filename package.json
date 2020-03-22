@@ -27,21 +27,21 @@
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
-    "browserify-transform-tools": "^1.4.2",
+    "browserify-transform-tools": "^1.7.0",
     "globby": "^6.0.0",
     "lie": "^3.3.0",
     "microdash": "~1",
     "nowdoc": "~1.0",
-    "phpruntime": "^6.2.0",
-    "phptoast": "^7.0.0",
-    "phptojs": "^7.1.0",
+    "phpruntime": "^6.3.1",
+    "phptoast": "^7.1.0",
+    "phptojs": "^7.2.0",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
     "chai": "^2.3.0",
     "chai-as-promised": "^5.1.0",
-    "jshint": "^2.10.2",
-    "mocha": "^5.2.0",
+    "jshint": "^2.11.0",
+    "mocha": "^7.1.1",
     "sinon": "~1.15",
     "sinon-chai": "^2.14.0"
   },
