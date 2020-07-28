@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -14,36 +14,41 @@ var expect = require('chai').expect,
     Performance = require('../../src/Performance');
 
 describe('Performance', function () {
+    var Date,
+        global,
+        nativePerformance,
+        performance;
+
     beforeEach(function () {
-        this.Date = sinon.stub();
-        this.nativePerformance = {
+        Date = sinon.stub();
+        nativePerformance = {
             now: sinon.stub(),
             timing: {
                 navigationStart: 21
             }
         };
-        this.global = {
-            performance: this.nativePerformance
+        global = {
+            performance: nativePerformance
         };
-        this.Date.prototype.getTime = sinon.stub();
+        Date.prototype.getTime = sinon.stub();
 
-        this.performance = new Performance(this.Date, this.global);
+        performance = new Performance(Date, global);
     });
 
     describe('getTimeInMicroseconds()', function () {
         it('should return the result from Window.performance.now() + navigationStart where supported', function () {
             // Current time in milliseconds, accurate to the nearest microsecond
-            this.nativePerformance.now.returns(1000000);
+            nativePerformance.now.returns(1000000);
 
-            expect(this.performance.getTimeInMicroseconds()).to.equal(1000021000);
+            expect(performance.getTimeInMicroseconds()).to.equal(1000021000);
         });
 
         it('should return the current time in us rounded to the nearest ms when not supported', function () {
-            delete this.global.performance;
+            delete global.performance;
             // Current time in milliseconds, accurate to the nearest millisecond
-            this.Date.prototype.getTime.returns(12345);
+            Date.prototype.getTime.returns(12345);
 
-            expect(this.performance.getTimeInMicroseconds()).to.equal(12345000);
+            expect(performance.getTimeInMicroseconds()).to.equal(12345000);
         });
     });
 });

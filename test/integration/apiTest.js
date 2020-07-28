@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -14,11 +14,12 @@ var asyncAPI = require('../../api/async'),
     phpify = require('../..'),
     psyncAPI = require('../../api/psync'),
     syncAPI = require('../../api/sync'),
-    Loader = require('../../src/Loader');
+    Loader = require('../../src/Loader'),
+    TransformerFactory = require('../../src/TransformerFactory');
 
 describe('Public API integration', function () {
-    it('should export a function as the Browserify transform', function () {
-        expect(phpify).to.be.a('function');
+    it('should export a TransformerFactory as the transformation API', function () {
+        expect(phpify).to.be.an.instanceOf(TransformerFactory);
     });
 
     it('should export a Loader as the async API entrypoint', function () {

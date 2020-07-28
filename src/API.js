@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -16,11 +16,12 @@ var _ = require('microdash');
  *
  * @param {class} FileSystem
  * @param {class} Loader
+ * @param {class} ModuleRepository
  * @param {Object} phpRuntime
  * @param {Performance} performance
  * @constructor
  */
-function API(FileSystem, Loader, phpRuntime, performance) {
+function API(FileSystem, Loader, ModuleRepository, phpRuntime, performance) {
     /**
      * @type {class}
      */
@@ -29,6 +30,10 @@ function API(FileSystem, Loader, phpRuntime, performance) {
      * @type {class}
      */
     this.Loader = Loader;
+    /**
+     * @type {class}
+     */
+    this.ModuleRepository = ModuleRepository;
     /**
      * @type {Performance}
      */
@@ -48,14 +53,15 @@ _.extend(API.prototype, {
      */
     createLoader: function () {
         var api = this,
-            fileSystem = new api.FileSystem(),
+            moduleRepository = new api.ModuleRepository(require.cache),
+            fileSystem = new api.FileSystem(moduleRepository),
             environment = api.phpRuntime.createEnvironment({
                 fileSystem: fileSystem,
                 include: function (filePath, promise) {
                     var result;
 
                     try {
-                        result = fileSystem.compilePHPFile(filePath);
+                        result = fileSystem.getModuleFactory(filePath);
                     } catch (error) {
                         promise.reject(error);
                         return;
@@ -66,7 +72,7 @@ _.extend(API.prototype, {
                 performance: api.performance
             });
 
-        return new api.Loader(fileSystem, environment);
+        return new api.Loader(moduleRepository, environment);
     }
 });
 

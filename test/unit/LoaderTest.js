@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -11,82 +11,80 @@
 
 var expect = require('chai').expect,
     sinon = require('sinon'),
-    FileSystem = require('../../src/FileSystem'),
-    Loader = require('../../src/Loader');
+    Loader = require('../../src/Loader'),
+    ModuleRepository = require('../../src/ModuleRepository');
 
 describe('Loader', function () {
-    beforeEach(function () {
-        this.environment = {};
-        this.fileSystem = sinon.createStubInstance(FileSystem);
+    var environment,
+        loader,
+        moduleRepository;
 
-        this.loader = new Loader(this.fileSystem, this.environment);
+    beforeEach(function () {
+        environment = {};
+        moduleRepository = sinon.createStubInstance(ModuleRepository);
+
+        loader = new Loader(moduleRepository, environment);
     });
 
-    describe('compilePHPFile()', function () {
-        it('should return the result from the FileSystem', function () {
+    describe('getModuleFactory()', function () {
+        it('should return the module factory from the ModuleRepository', function () {
             var moduleFactory = sinon.stub();
-            this.fileSystem.compilePHPFile.withArgs('/my/php/file/path.php').returns(moduleFactory);
+            moduleRepository.getModuleFactory
+                .withArgs('/my/php/file/path.php')
+                .returns(moduleFactory);
 
-            expect(this.loader.compilePHPFile('/my/php/file/path.php')).to.equal(moduleFactory);
+            expect(loader.getModuleFactory('/my/php/file/path.php')).to.equal(moduleFactory);
         });
     });
 
     describe('init()', function () {
-        it('should initialize the FileSystem', function () {
-            this.loader.init();
+        var moduleFactoryFetcher;
 
-            expect(this.fileSystem.init).to.have.been.calledOnce;
+        beforeEach(function () {
+            moduleFactoryFetcher = sinon.stub();
+        });
+
+        it('should initialize the FileSystem', function () {
+            loader.init(moduleFactoryFetcher);
+
+            expect(moduleRepository.init).to.have.been.calledOnce;
         });
 
         it('should only initialize the FileSystem once', function () {
-            this.loader.init();
+            loader.init(moduleFactoryFetcher);
 
-            this.loader.init();
+            loader.init(moduleFactoryFetcher); // Init a second time
 
-            expect(this.fileSystem.init).to.have.been.calledOnce;
+            expect(moduleRepository.init).to.have.been.calledOnce;
         });
 
         it('should pass the module factory fetcher through to the FileSystem', function () {
-            var moduleFactoryFetcher = sinon.stub();
+            loader.init(moduleFactoryFetcher);
 
-            this.loader.init(moduleFactoryFetcher);
-
-            expect(this.fileSystem.init).to.have.been.calledWith(sinon.match.same(moduleFactoryFetcher));
+            expect(moduleRepository.init).to.have.been.calledWith(sinon.match.same(moduleFactoryFetcher));
         });
     });
 
     describe('load()', function () {
-        it('should return a new factory from [moduleFactory].using(...)', function () {
-            var moduleFactory = sinon.stub(),
-                newModuleFactory = sinon.stub();
-            moduleFactory.using = sinon.stub().returns(newModuleFactory);
+        it('should load the module factory via the ModuleRepository correctly', function () {
+            var moduleFactory = sinon.stub();
+            moduleRepository.load.returns(moduleFactory);
 
-            expect(this.loader.load('my/module/path.php', moduleFactory)).to.equal(newModuleFactory);
-        });
+            loader.load('my/module/path.php', moduleFactory);
 
-        it('should pass the path of the module to [moduleFactory].using(...) as an option', function () {
-            var moduleFactory = sinon.stub(),
-                newModuleFactory = sinon.stub();
-            moduleFactory.using = sinon.stub().returns(newModuleFactory);
-
-            this.loader.load('my/module/path.php', moduleFactory);
-
-            expect(moduleFactory.using).to.have.been.calledWith(sinon.match({
-                path: 'my/module/path.php'
-            }));
-        });
-
-        it('should pass the Environment through to [moduleFactory].using(...)', function () {
-            var moduleFactory = sinon.stub(),
-                newModuleFactory = sinon.stub();
-            moduleFactory.using = sinon.stub().returns(newModuleFactory);
-
-            this.loader.load('my/module/path.php', moduleFactory);
-
-            expect(moduleFactory.using).to.have.been.calledWith(
-                sinon.match.any,
-                sinon.match.same(this.environment)
+            expect(moduleRepository.load).to.have.been.calledOnce;
+            expect(moduleRepository.load).to.have.been.calledWith(
+                'my/module/path.php',
+                sinon.match.same(moduleFactory),
+                sinon.match.same(environment)
             );
+        });
+
+        it('should return the module factory from the ModuleRepository', function () {
+            var moduleFactory = sinon.stub();
+            moduleRepository.load.returns(moduleFactory);
+
+            expect(loader.load('my/module/path.php', moduleFactory)).to.equal(moduleFactory);
         });
     });
 });
