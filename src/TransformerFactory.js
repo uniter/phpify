@@ -70,7 +70,13 @@ _.extend(TransformerFactory.prototype, {
     create: function (contextDirectory) {
         var factory = this,
             uniterConfig = factory.phpConfigLoader.getConfig([contextDirectory]),
-            // TODO: Pass effective config path to Transformer and add getter to call from phploader
+
+            // TODO: Pass effective config path to Transformer and add getter to call from bundler
+
+            // Export the config for the PHPCore library rather than attempting to merge it here,
+            // as we need to embed any plugin config requires in the Initialiser (see Transformer)
+            phpCoreConfig = uniterConfig.exportLibrary('phpcore'),
+
             phpifyConfig = uniterConfig.getConfigsForLibrary('phpify').mergeUniqueObjects(),
             phpToASTConfig = uniterConfig.getConfigsForLibrary('phpify', 'phptoast').mergeUniqueObjects(),
             phpToJSConfig = uniterConfig.getConfigsForLibrary('phpify', 'phptojs').mergeUniqueObjects(),
@@ -84,6 +90,7 @@ _.extend(TransformerFactory.prototype, {
             factory.initialiserStubPath,
             phpifyConfig,
             phpToJSConfig,
+            phpCoreConfig,
             contextDirectory
         );
     }

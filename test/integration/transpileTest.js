@@ -19,24 +19,29 @@ var expect = require('chai').expect,
     Transformer = require('../../src/Transformer');
 
 describe('Transpilation integration', function () {
-    var config,
-        contextDirectory,
+    var contextDirectory,
         globby,
         hookedRequire,
         initialiserStubPath,
+        phpCoreConfig,
+        phpifyConfig,
         phpParser,
+        phpToJSConfig,
         requireResolve,
         transformer;
 
     beforeEach(function () {
         initialiserStubPath = path.resolve(__dirname + '/../../src/php/initialiser_stub.php');
-        config = {
-            'phptojs': {
-                'include': [
-                    'my/path/to/**/*.php'
-                ],
-                'sync': true
-            }
+        phpifyConfig = {};
+        phpToJSConfig = {
+            'include': [
+                'my/path/to/**/*.php'
+            ],
+            'sync': true
+        };
+        phpCoreConfig = {
+            topLevelConfig: {},
+            pluginConfigFilePaths: []
         };
         contextDirectory = 'my/path';
         globby = {
@@ -72,8 +77,9 @@ describe('Transpilation integration', function () {
             requireResolve,
             globby,
             initialiserStubPath,
-            config,
-            config.phptojs,
+            phpifyConfig,
+            phpToJSConfig,
+            phpCoreConfig,
             contextDirectory
         );
     });
@@ -94,7 +100,7 @@ describe('Transpilation integration', function () {
             exports = {},
             module = {exports: exports},
             transpiledJS;
-        config.phptojs.sync = false; // Use async mode
+        phpToJSConfig.sync = false; // Use async mode
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
@@ -111,8 +117,8 @@ describe('Transpilation integration', function () {
             exports = {},
             module = {exports: exports},
             transpiledJS;
-        delete config.phptojs.sync; // Use async mode
-        config.phptojs.mode = 'async';
+        delete phpToJSConfig.sync; // Use async mode
+        phpToJSConfig.mode = 'async';
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
@@ -129,8 +135,8 @@ describe('Transpilation integration', function () {
             exports = {},
             module = {exports: exports},
             transpiledJS;
-        delete config.phptojs.sync; // Use async mode
-        config.phptojs.mode = 'psync';
+        delete phpToJSConfig.sync; // Use psync mode
+        phpToJSConfig.mode = 'psync';
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 

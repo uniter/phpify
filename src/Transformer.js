@@ -28,6 +28,7 @@ var _ = require('microdash'),
  * @param {string} initialiserStubPath
  * @param {Object} phpifyConfig
  * @param {Object} phpToJSConfig
+ * @param {LibraryConfigShape} phpCoreConfig
  * @param {string} contextDirectory
  * @constructor
  */
@@ -39,6 +40,7 @@ function Transformer(
     initialiserStubPath,
     phpifyConfig,
     phpToJSConfig,
+    phpCoreConfig,
     contextDirectory
 ) {
     /**
@@ -53,6 +55,10 @@ function Transformer(
      * @type {string}
      */
     this.initialiserStubPath = initialiserStubPath;
+    /**
+     * @type {LibraryConfigShape}
+     */
+    this.phpCoreConfig = phpCoreConfig;
     /**
      * @type {Object}
      */
@@ -169,7 +175,7 @@ _.extend(Transformer.prototype, {
             });
 
             return nowdoc(function () {/*<<<EOS
-require(${apiPath}).init(function (path, checkExistence) {
+require(${apiPath}).installModules(function (path, checkExistence) {
     var exists = false;
 
     function handlePath(aPath) {
@@ -192,14 +198,14 @@ require(${apiPath}).init(function (path, checkExistence) {
     }
 
     return checkExistence ? exists : null;
-})${bootstrapCall};
+})${configureCall}${bootstrapCall};
 EOS*/;}, { // jshint ignore:line
                 apiPath: JSON.stringify(apiPath),
                 bootstrapCall:
                     // Optionally add a call to Loader.bootstrap(...) to install the bootstrap
                     // modules if any have been specified
                     bootstraps.length > 0 ?
-                        '.bootstrap([' +
+                        '\n.bootstrap([' +
                         bootstraps
                             .map(function (bootstrapPath) {
                                 // Bootstrap paths should be resolved relative to the initialiser
@@ -211,6 +217,18 @@ EOS*/;}, { // jshint ignore:line
                             .join(', ') +
                         '])' :
                         '',
+                configureCall: '\n.configure(' +
+                    JSON.stringify({
+                        stdio: transformer.phpifyConfig.stdio !== false
+                    }) +
+                    ', [' +
+                    transformer.phpCoreConfig.pluginConfigFilePaths
+                        .map(function (path) {
+                            return 'require(' + JSON.stringify(path) + ')';
+                        })
+                        .concat([JSON.stringify(transformer.phpCoreConfig.topLevelConfig)])
+                        .join(', ') +
+                    '])',
                 switchCases: phpModuleFactories.join('\n    ')
             });
         }

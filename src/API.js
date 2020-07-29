@@ -17,11 +17,21 @@ var _ = require('microdash');
  * @param {class} FileSystem
  * @param {class} Loader
  * @param {class} ModuleRepository
- * @param {Object} phpRuntime
- * @param {Performance} performance
+ * @param {EnvironmentProvider} environmentProvider
+ * @param {ConfigImporter} phpConfigImporter
  * @constructor
  */
-function API(FileSystem, Loader, ModuleRepository, phpRuntime, performance) {
+function API(
+    FileSystem,
+    Loader,
+    ModuleRepository,
+    environmentProvider,
+    phpConfigImporter
+) {
+    /**
+     * @type {EnvironmentProvider}
+     */
+    this.environmentProvider = environmentProvider;
     /**
      * @type {class}
      */
@@ -35,13 +45,9 @@ function API(FileSystem, Loader, ModuleRepository, phpRuntime, performance) {
      */
     this.ModuleRepository = ModuleRepository;
     /**
-     * @type {Performance}
+     * @type {ConfigImporter}
      */
-    this.performance = performance;
-    /**
-     * @type {Object}
-     */
-    this.phpRuntime = phpRuntime;
+    this.phpConfigImporter = phpConfigImporter;
 }
 
 _.extend(API.prototype, {
@@ -54,25 +60,9 @@ _.extend(API.prototype, {
     createLoader: function () {
         var api = this,
             moduleRepository = new api.ModuleRepository(require.cache),
-            fileSystem = new api.FileSystem(moduleRepository),
-            environment = api.phpRuntime.createEnvironment({
-                fileSystem: fileSystem,
-                include: function (filePath, promise) {
-                    var result;
+            fileSystem = new api.FileSystem(moduleRepository);
 
-                    try {
-                        result = fileSystem.getModuleFactory(filePath);
-                    } catch (error) {
-                        promise.reject(error);
-                        return;
-                    }
-
-                    promise.resolve(result);
-                },
-                performance: api.performance
-            });
-
-        return new api.Loader(moduleRepository, environment);
+        return new api.Loader(moduleRepository, fileSystem, api.environmentProvider, api.phpConfigImporter);
     }
 });
 

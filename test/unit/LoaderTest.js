@@ -11,19 +11,112 @@
 
 var expect = require('chai').expect,
     sinon = require('sinon'),
+    EnvironmentProvider = require('../../src/EnvironmentProvider'),
+    FileSystem = require('../../src/FileSystem'),
     Loader = require('../../src/Loader'),
     ModuleRepository = require('../../src/ModuleRepository');
 
 describe('Loader', function () {
     var environment,
+        environmentProvider,
+        fileSystem,
         loader,
-        moduleRepository;
+        moduleRepository,
+        phpConfigImporter;
 
     beforeEach(function () {
         environment = {};
+        environmentProvider = sinon.createStubInstance(EnvironmentProvider);
+        fileSystem = sinon.createStubInstance(FileSystem);
         moduleRepository = sinon.createStubInstance(ModuleRepository);
+        phpConfigImporter = {
+            importLibrary: sinon.stub().returns({
+                mergeUniqueObjects: sinon.stub()
+            })
+        };
 
-        loader = new Loader(moduleRepository, environment);
+        environmentProvider.createEnvironment.returns(environment);
+
+        loader = new Loader(moduleRepository, fileSystem, environmentProvider, phpConfigImporter);
+    });
+
+    describe('bootstrap()', function () {
+        it('should call any functions returned by bootstrap modules with the Environment', function () {
+            var bootstrapResult1 = sinon.stub(),
+                bootstrapResult2 = sinon.stub();
+
+            loader.bootstrap([
+                21, // Simulate a bootstrap module returning a non-function
+                bootstrapResult1,
+                bootstrapResult2
+            ]);
+
+            expect(bootstrapResult1).to.have.been.calledOnce;
+            expect(bootstrapResult1).to.have.been.calledWith(sinon.match.same(environment));
+            expect(bootstrapResult2).to.have.been.calledOnce;
+            expect(bootstrapResult2).to.have.been.calledWith(sinon.match.same(environment));
+        });
+
+        it('should return the Loader for chaining', function () {
+            expect(loader.bootstrap([])).to.equal(loader);
+        });
+    });
+
+    describe('configure()', function () {
+        it('should import the PHPCore library config correctly', function () {
+            var config1 = {},
+                config2 = {};
+
+            loader.configure({}, [config1, config2]);
+
+            expect(phpConfigImporter.importLibrary).to.have.been.calledOnce;
+            expect(phpConfigImporter.importLibrary).to.have.been.calledWith(
+                {configs: [config1, config2]}
+            );
+        });
+
+        it('should return the Loader for chaining', function () {
+            expect(loader.configure({}, [])).to.equal(loader);
+        });
+    });
+
+    describe('getEnvironment()', function () {
+        it('should pass the FileSystem to the EnvironmentProvider', function () {
+            loader.getEnvironment();
+
+            expect(environmentProvider.createEnvironment).to.have.been.calledOnce;
+            expect(environmentProvider.createEnvironment).to.have.been.calledWith(
+                sinon.match.same(fileSystem)
+            );
+        });
+
+        it('should pass the PHPify config that was passed to .configure()', function () {
+            loader.configure({my: 'PHPify config'});
+
+            loader.getEnvironment();
+
+            expect(environmentProvider.createEnvironment).to.have.been.calledOnce;
+            expect(environmentProvider.createEnvironment).to.have.been.calledWith(
+                sinon.match.any,
+                {my: 'PHPify config'}
+            );
+        });
+
+        it('should pass the PHPCore config that was passed to .configure()', function () {
+            phpConfigImporter.importLibrary.returns({
+                mergeUniqueObjects: sinon.stub().returns({my: 'PHPCore config'})
+            });
+            loader.configure({}, [{first: 'PHPCore config 1'}, {second: 'PHPCore config 2'}]);
+
+            loader.getEnvironment();
+
+            expect(environmentProvider.createEnvironment).to.have.been.calledOnce;
+            expect(environmentProvider.createEnvironment).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match.any,
+                {my: 'PHPCore config'}
+            );
+        });
     });
 
     describe('getModuleFactory()', function () {
@@ -37,31 +130,39 @@ describe('Loader', function () {
         });
     });
 
-    describe('init()', function () {
+    describe('installModules()', function () {
         var moduleFactoryFetcher;
 
         beforeEach(function () {
             moduleFactoryFetcher = sinon.stub();
         });
 
-        it('should initialize the FileSystem', function () {
-            loader.init(moduleFactoryFetcher);
+        it('should initialize the ModuleRepository', function () {
+            loader.installModules(moduleFactoryFetcher);
 
             expect(moduleRepository.init).to.have.been.calledOnce;
         });
 
-        it('should only initialize the FileSystem once', function () {
-            loader.init(moduleFactoryFetcher);
-
-            loader.init(moduleFactoryFetcher); // Init a second time
-
-            expect(moduleRepository.init).to.have.been.calledOnce;
-        });
-
-        it('should pass the module factory fetcher through to the FileSystem', function () {
-            loader.init(moduleFactoryFetcher);
+        it('should pass the module factory fetcher through to the ModuleRepository', function () {
+            loader.installModules(moduleFactoryFetcher);
 
             expect(moduleRepository.init).to.have.been.calledWith(sinon.match.same(moduleFactoryFetcher));
+        });
+
+        it('should return the Loader for chaining', function () {
+            expect(loader.installModules(moduleFactoryFetcher)).to.equal(loader);
+        });
+    });
+
+    describe('isInitialised()', function () {
+        it('should return false initially', function () {
+            expect(loader.isInitialised()).to.be.false;
+        });
+
+        it('should return true after the Environment has been created', function () {
+            loader.getEnvironment();
+
+            expect(loader.isInitialised()).to.be.true;
         });
     });
 

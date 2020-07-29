@@ -15,32 +15,56 @@ var _ = require('microdash');
  * Public API for compiled PHP modules
  *
  * @param {ModuleRepository} moduleRepository
- * @param {Environment} environment
+ * @param {FileSystem} fileSystem
+ * @param {EnvironmentProvider} environmentProvider
+ * @param {ConfigImporterInterface} phpConfigImporter
  * @constructor
  */
-function Loader(moduleRepository, environment) {
+function Loader(
+    moduleRepository,
+    fileSystem,
+    environmentProvider,
+    phpConfigImporter
+) {
     /**
-     * @type {Environment}
+     * @type {Environment|null} Lazily-initialised by .getEnvironment()
      */
-    this.environment = environment;
+    this.environment = null;
     /**
-     * @type {boolean}
+     * @type {EnvironmentProvider}
      */
-    this.isInited = false;
+    this.environmentProvider = environmentProvider;
+    /**
+     * @type {FileSystem}
+     */
+    this.fileSystem = fileSystem;
     /**
      * @type {ModuleRepository}
      */
     this.moduleRepository = moduleRepository;
+    /**
+     * @type {ConfigImporterInterface}
+     */
+    this.phpConfigImporter = phpConfigImporter;
+    /**
+     * @type {Object} Populated from the Initialiser by .configure(...)
+     */
+    this.phpCoreConfig = {};
+    /**
+     * @type {Object} Populated from the Initialiser by .configure(...)
+     */
+    this.phpifyConfig = {};
 }
 
 _.extend(Loader.prototype, {
     /**
      * Executes zero or more bootstrap modules within the environment.
-     * Must be done as a separate method call from .init(...), as the PHP module factory fetcher
+     * Must be done as a separate method call from .installModules(...), as the PHP module factory fetcher
      * function installed needs to be available here, because bootstrap modules may themselves
      * be PHP modules (useful for including Composer's autoloader, for example)
      *
      * @param {Function[]} bootstraps
+     * @returns {Loader} For chaining
      */
     bootstrap: function (bootstraps) {
         var loader = this;
@@ -50,9 +74,48 @@ _.extend(Loader.prototype, {
             // If the bootstrap returned a function, invoke it with the environment,
             // otherwise do nothing (the bootstrap module has already had the chance to run)
             if (typeof bootstrap === 'function') {
-                bootstrap(loader.environment);
+                bootstrap(loader.getEnvironment());
             }
         });
+
+        return loader;
+    },
+
+    /**
+     * Populates the PHPify and PHPCore configurations
+     *
+     * @param {Object} phpifyConfig
+     * @param {Object[]} phpCoreConfigs
+     * @returns {Loader} For chaining
+     */
+    configure: function (phpifyConfig, phpCoreConfigs) {
+        var loader = this;
+
+        loader.phpifyConfig = phpifyConfig;
+        loader.phpCoreConfig = loader.phpConfigImporter
+            .importLibrary({configs: phpCoreConfigs})
+            .mergeUniqueObjects();
+
+        return loader;
+    },
+
+    /**
+     * Fetches the Environment for this loader, creating it if necessary
+     *
+     * @return {Environment}
+     */
+    getEnvironment: function () {
+        var loader = this;
+
+        if (!loader.environment) {
+            loader.environment = loader.environmentProvider.createEnvironment(
+                loader.fileSystem,
+                loader.phpifyConfig,
+                loader.phpCoreConfig
+            );
+        }
+
+        return loader.environment;
     },
 
     /**
@@ -68,25 +131,27 @@ _.extend(Loader.prototype, {
     },
 
     /**
-     * Initializes the Loader with a function
-     * for fetching the compiled module wrappers of PHP modules
+     * Installs a function into the loader for fetching the compiled module wrappers of PHP modules
      *
      * @param {Function} phpModuleFactoryFetcher
      * @returns {Loader} For chaining
      */
-    init: function (phpModuleFactoryFetcher) {
+    installModules: function (phpModuleFactoryFetcher) {
         var loader = this;
-
-        // Only init once
-        if (loader.isInited) {
-            return loader;
-        }
-
-        loader.isInited = true;
 
         loader.moduleRepository.init(phpModuleFactoryFetcher);
 
         return loader;
+    },
+
+    /**
+     * Determines whether this loader has already been initialised
+     * (whether the Environment has been created, lazily, when loading a PHP module)
+     *
+     * @return {boolean}
+     */
+    isInitialised: function () {
+        return this.environment !== null;
     },
 
     /**
@@ -101,7 +166,7 @@ _.extend(Loader.prototype, {
     load: function (filePath, moduleFactory) {
         var loader = this;
 
-        return loader.moduleRepository.load(filePath, moduleFactory, loader.environment);
+        return loader.moduleRepository.load(filePath, moduleFactory, loader.getEnvironment());
     }
 });
 

@@ -20,6 +20,7 @@ describe('Transformer', function () {
         contextDirectory,
         globby,
         parserState,
+        phpCoreConfig,
         phpifyConfig,
         phpParser,
         phpToJS,
@@ -36,6 +37,12 @@ describe('Transformer', function () {
         };
         parserState = {
             setPath: sinon.stub()
+        };
+        phpCoreConfig = {
+            topLevelConfig: {
+                my: 'top level config'
+            },
+            pluginConfigFilePaths: ['/my/first_plugin', '/my/second_plugin']
         };
         phpifyConfig = {};
         phpParser = {
@@ -56,6 +63,7 @@ describe('Transformer', function () {
             initialiserStubPath,
             phpifyConfig,
             phpToJSConfig,
+            phpCoreConfig,
             contextDirectory
         );
 
@@ -89,7 +97,7 @@ describe('Transformer', function () {
 
         it('should return the initialiser code, including the virtual FS switch, when no bootstraps are defined', function () {
             var expectedVfsSwitchCode = nowdoc(function () {/*<<<EOS
-require("/path/to/node_modules/phpify/api").init(function (path, checkExistence) {
+require("/path/to/node_modules/phpify/api").installModules(function (path, checkExistence) {
     var exists = false;
 
     function handlePath(aPath) {
@@ -113,7 +121,8 @@ require("/path/to/node_modules/phpify/api").init(function (path, checkExistence)
     }
 
     return checkExistence ? exists : null;
-});
+})
+.configure({"stdio":true}, [require("/my/first_plugin"), require("/my/second_plugin"), {"my":"top level config"}]);
 EOS
 */;}); // jshint ignore:line
 
@@ -125,7 +134,7 @@ EOS
 
         it('should return the initialiser code, including the virtual FS switch, when two bootstraps are defined', function () {
             var expectedVfsSwitchCode = nowdoc(function () {/*<<<EOS
-require("/path/to/node_modules/phpify/api").init(function (path, checkExistence) {
+require("/path/to/node_modules/phpify/api").installModules(function (path, checkExistence) {
     var exists = false;
 
     function handlePath(aPath) {
@@ -149,7 +158,9 @@ require("/path/to/node_modules/phpify/api").init(function (path, checkExistence)
     }
 
     return checkExistence ? exists : null;
-}).bootstrap([require("./../../../my/path/to/bootstrap_one"), require("./../the/bootstrap_two")]);
+})
+.configure({"stdio":true}, [require("/my/first_plugin"), require("/my/second_plugin"), {"my":"top level config"}])
+.bootstrap([require("./../../../my/path/to/bootstrap_one"), require("./../the/bootstrap_two")]);
 EOS
 */;}); // jshint ignore:line
 

@@ -15,9 +15,10 @@
 
 var Transformer = require('./src/Transformer'),
     TransformerFactory = require('./src/TransformerFactory'),
+    fs = require('fs'),
     globby = require('globby'),
     path = require('path'),
-    phpConfigLoader = require('phpconfig').configLoader,
+    phpConfigLoader = require('phpconfig').createConfigLoader(fs.existsSync),
     phpToAST = require('phptoast'),
     phpToJS = require('phptojs'),
     initialiserStubPath = path.resolve(__dirname + '/src/php/initialiser_stub.php'),

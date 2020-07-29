@@ -12,30 +12,29 @@
 var expect = require('chai').expect,
     sinon = require('sinon'),
     API = require('../../src/API'),
-    Performance = require('../../src/Performance');
+    EnvironmentProvider = require('../../src/EnvironmentProvider');
 
 describe('API', function () {
     var api,
-        createEnvironment,
+        environmentProvider,
         FileSystem,
+        fileSystem,
         Loader,
         ModuleRepository,
-        performance,
-        phpRuntime;
+        phpConfigImporter;
 
     beforeEach(function () {
+        environmentProvider = sinon.createStubInstance(EnvironmentProvider);
         FileSystem = sinon.stub();
+        fileSystem = {};
         Loader = sinon.stub();
         ModuleRepository = sinon.stub();
-        createEnvironment = sinon.stub();
-        performance = sinon.createStubInstance(Performance);
-        phpRuntime = {
-            createEnvironment: createEnvironment
-        };
+        phpConfigImporter = {};
 
+        FileSystem.returns(fileSystem);
         FileSystem.prototype.getModuleFactory = function () {};
 
-        api = new API(FileSystem, Loader, ModuleRepository, phpRuntime, performance);
+        api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter);
     });
 
     describe('createLoader()', function () {
@@ -53,69 +52,6 @@ describe('API', function () {
             expect(ModuleRepository).to.have.been.calledWith(require.cache);
         });
 
-        it('should create the Environment with a FileSystem instance', function () {
-            api.createLoader();
-
-            expect(createEnvironment).to.have.been.calledOnce;
-            expect(createEnvironment).to.have.been.calledWith(sinon.match({
-                fileSystem: sinon.match.instanceOf(FileSystem)
-            }));
-        });
-
-        it('should create the Environment with an include transport', function () {
-            api.createLoader();
-
-            expect(createEnvironment).to.have.been.calledOnce;
-            expect(createEnvironment).to.have.been.calledWith(sinon.match({
-                include: sinon.match.typeOf('function')
-            }));
-        });
-
-        it('should create the Environment with the Performance abstraction', function () {
-            api.createLoader();
-
-            expect(createEnvironment).to.have.been.calledOnce;
-            expect(createEnvironment).to.have.been.calledWith(sinon.match({
-                performance: sinon.match.same(performance)
-            }));
-        });
-
-        describe('the include transport used for the Environment', function () {
-            it('should resolve the promise with the configured module factory from the FileSystem', function () {
-                var fileSystem = sinon.createStubInstance(FileSystem),
-                    moduleFactory = sinon.stub(),
-                    resolve = sinon.stub();
-                FileSystem.returns(fileSystem);
-                fileSystem.getModuleFactory
-                    .withArgs('/my/file.php')
-                    .returns(moduleFactory);
-
-                api.createLoader();
-                createEnvironment.args[0][0].include('/my/file.php', {resolve: resolve});
-
-                expect(resolve).to.have.been.calledOnce;
-                expect(resolve).to.have.been.calledWith(moduleFactory);
-            });
-
-            it('should reject the promise with any error from the FileSystem', function () {
-                var fileSystem = sinon.createStubInstance(FileSystem),
-                    reject = sinon.stub();
-                FileSystem.returns(fileSystem);
-                fileSystem.getModuleFactory
-                    .withArgs('/my/unreadable/file.php')
-                    .throws(new Error('Unreadable file'));
-
-                api.createLoader();
-                createEnvironment.args[0][0].include('/my/unreadable/file.php', {reject: reject});
-
-                expect(reject).to.have.been.calledOnce;
-                expect(reject).to.have.been.calledWith(
-                    sinon.match.instanceOf(Error)
-                        .and(sinon.match.has('message', 'Unreadable file'))
-                );
-            });
-        });
-
         it('should only create one FileSystem', function () {
             api.createLoader();
 
@@ -129,14 +65,34 @@ describe('API', function () {
             expect(Loader).to.have.been.calledWith(sinon.match.instanceOf(ModuleRepository));
         });
 
-        it('should create the Loader with the created Environment', function () {
-            var environment = {};
-            createEnvironment.returns(environment);
-
+        it('should create the Loader with the created FileSystem', function () {
             api.createLoader();
 
             expect(Loader).to.have.been.calledOnce;
-            expect(Loader).to.have.been.calledWith(sinon.match.any, sinon.match.same(environment));
+            expect(Loader).to.have.been.calledWith(sinon.match.any, sinon.match.same(fileSystem));
+        });
+
+        it('should create the Loader with the EnvironmentProvider', function () {
+            api.createLoader();
+
+            expect(Loader).to.have.been.calledOnce;
+            expect(Loader).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match.any,
+                sinon.match.same(environmentProvider)
+            );
+        });
+
+        it('should create the Loader with the ConfigImporter', function () {
+            api.createLoader();
+
+            expect(Loader).to.have.been.calledOnce;
+            expect(Loader).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match.any,
+                sinon.match.any,
+                sinon.match.same(phpConfigImporter)
+            );
         });
 
         it('should return an instance of Loader', function () {
