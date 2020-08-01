@@ -61,14 +61,14 @@ _.extend(EnvironmentProvider.prototype, {
                 },
                 performance: provider.performance
             }),
-            plugins = environmentOptions.plugins || [], // TODO: Rename to "addons"
+            addons = environmentOptions.addons || [],
             environment;
 
-        delete environmentOptions.plugins;
+        delete environmentOptions.addons;
 
         environment = provider.phpRuntime.createEnvironment(
             environmentOptions,
-            plugins
+            addons
         );
 
         provider.io.install(environment, phpifyConfig);

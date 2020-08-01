@@ -70,26 +70,26 @@ describe('EnvironmentProvider', function () {
             }));
         });
 
-        it('should remove any plugins from the options config', function () {
-            phpCoreConfig.plugins = [{'plugin': 'one'}];
+        it('should remove any addons from the options config', function () {
+            phpCoreConfig.addons = [{'plugin': 'one'}];
 
             provider.createEnvironment(fileSystem, phpifyConfig, phpCoreConfig);
 
             expect(createEnvironment).to.have.been.calledOnce;
             expect(createEnvironment).to.have.been.calledWith(sinon.match(function (options) {
-                return !{}.hasOwnProperty.call(options, 'plugins');
+                return !{}.hasOwnProperty.call(options, 'addons');
             }));
         });
 
-        it('should create the Environment with any provided plugins', function () {
-            phpCoreConfig.plugins = [{'plugin': 'one'}];
+        it('should create the Environment with any provided addons', function () {
+            phpCoreConfig.addons = [{'addon': 'one'}];
 
             provider.createEnvironment(fileSystem, phpifyConfig, phpCoreConfig);
 
             expect(createEnvironment).to.have.been.calledOnce;
             expect(createEnvironment).to.have.been.calledWith(
                 sinon.match.any,
-                [{'plugin': 'one'}]
+                [{'addon': 'one'}]
             );
         });
 
