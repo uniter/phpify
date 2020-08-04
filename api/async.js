@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -11,12 +11,18 @@
 
 /*global global */
 var API = require('../src/API'),
+    EnvironmentProvider = require('../src/EnvironmentProvider'),
     FileSystem = require('../src/FileSystem'),
+    IO = require('../src/IO'),
     Loader = require('../src/Loader'),
+    ModuleRepository = require('../src/ModuleRepository'),
     Performance = require('../src/Performance'),
     performance = new Performance(Date, global),
+    phpConfigImporter = require('phpconfig').configImporter,
     phpRuntime = require('phpruntime'),
-    api = new API(FileSystem, Loader, phpRuntime, performance),
+    io = new IO(console),
+    environmentProvider = new EnvironmentProvider(phpRuntime, performance, io),
+    api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter),
     loader = api.createLoader();
 
 module.exports = loader;

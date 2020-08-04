@@ -1,5 +1,5 @@
 /*
- * PHPify - Browserify transform
+ * PHPify - Compiles PHP modules to CommonJS with Uniter
  * Copyright (c) Dan Phillimore (asmblah)
  * https://github.com/uniter/phpify
  *
@@ -16,11 +16,22 @@ var _ = require('microdash');
  *
  * @param {class} FileSystem
  * @param {class} Loader
- * @param {Object} phpRuntime
- * @param {Performance} performance
+ * @param {class} ModuleRepository
+ * @param {EnvironmentProvider} environmentProvider
+ * @param {ConfigImporter} phpConfigImporter
  * @constructor
  */
-function API(FileSystem, Loader, phpRuntime, performance) {
+function API(
+    FileSystem,
+    Loader,
+    ModuleRepository,
+    environmentProvider,
+    phpConfigImporter
+) {
+    /**
+     * @type {EnvironmentProvider}
+     */
+    this.environmentProvider = environmentProvider;
     /**
      * @type {class}
      */
@@ -30,13 +41,13 @@ function API(FileSystem, Loader, phpRuntime, performance) {
      */
     this.Loader = Loader;
     /**
-     * @type {Performance}
+     * @type {class}
      */
-    this.performance = performance;
+    this.ModuleRepository = ModuleRepository;
     /**
-     * @type {Object}
+     * @type {ConfigImporter}
      */
-    this.phpRuntime = phpRuntime;
+    this.phpConfigImporter = phpConfigImporter;
 }
 
 _.extend(API.prototype, {
@@ -48,25 +59,10 @@ _.extend(API.prototype, {
      */
     createLoader: function () {
         var api = this,
-            fileSystem = new api.FileSystem(),
-            environment = api.phpRuntime.createEnvironment({
-                fileSystem: fileSystem,
-                include: function (filePath, promise) {
-                    var result;
+            moduleRepository = new api.ModuleRepository(require.cache),
+            fileSystem = new api.FileSystem(moduleRepository);
 
-                    try {
-                        result = fileSystem.compilePHPFile(filePath);
-                    } catch (error) {
-                        promise.reject(error);
-                        return;
-                    }
-
-                    promise.resolve(result);
-                },
-                performance: api.performance
-            });
-
-        return new api.Loader(fileSystem, environment);
+        return new api.Loader(moduleRepository, fileSystem, api.environmentProvider, api.phpConfigImporter);
     }
 });
 
