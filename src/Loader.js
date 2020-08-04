@@ -94,7 +94,7 @@ _.extend(Loader.prototype, {
         loader.phpifyConfig = phpifyConfig;
         loader.phpCoreConfig = loader.phpConfigImporter
             .importLibrary({configs: phpCoreConfigs})
-            .mergeUniqueObjects();
+            .mergeAll();
 
         return loader;
     },

@@ -31,7 +31,7 @@ describe('Loader', function () {
         moduleRepository = sinon.createStubInstance(ModuleRepository);
         phpConfigImporter = {
             importLibrary: sinon.stub().returns({
-                mergeUniqueObjects: sinon.stub()
+                mergeAll: sinon.stub()
             })
         };
 
@@ -104,7 +104,7 @@ describe('Loader', function () {
 
         it('should pass the PHPCore config that was passed to .configure()', function () {
             phpConfigImporter.importLibrary.returns({
-                mergeUniqueObjects: sinon.stub().returns({my: 'PHPCore config'})
+                mergeAll: sinon.stub().returns({my: 'PHPCore config'})
             });
             loader.configure({}, [{first: 'PHPCore config 1'}, {second: 'PHPCore config 2'}]);
 
