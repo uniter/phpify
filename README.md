@@ -3,7 +3,9 @@ PHPify
 
 [![Build Status](https://secure.travis-ci.org/uniter/phpify.png?branch=master)](http://travis-ci.org/uniter/phpify)
 
-Browserify transform for requiring PHP modules from JavaScript.
+Compiles PHP modules for the browser with [Uniter][].
+
+For the Webpack loader, see [PHPLoader][].
 
 Usage
 =====
@@ -176,3 +178,6 @@ Listener called!
 and...
 Listener called!
 ```
+
+[Uniter]: https://github.com/asmblah/uniter
+[PHPLoader]: https://github.com/uniter/phploader
