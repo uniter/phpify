@@ -70,6 +70,17 @@ describe('EnvironmentProvider', function () {
             }));
         });
 
+        it('should pass any options through from the config', function () {
+            phpCoreConfig.myOption = 'my value';
+
+            provider.createEnvironment(fileSystem, phpifyConfig, phpCoreConfig);
+
+            expect(createEnvironment).to.have.been.calledOnce;
+            expect(createEnvironment).to.have.been.calledWith(sinon.match({
+                myOption: 'my value'
+            }));
+        });
+
         it('should remove any addons from the options config', function () {
             phpCoreConfig.addons = [{'plugin': 'one'}];
 
