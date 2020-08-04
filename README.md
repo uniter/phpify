@@ -1,7 +1,7 @@
 PHPify
 =======
 
-[![Build Status](https://secure.travis-ci.org/uniter/phpify.png?branch=master)](http://travis-ci.org/uniter/phpify)
+[![Build Status](https://github.com/uniter/phpify/workflows/CI/badge.svg)](https://github.com/uniter/phpify/actions?query=workflow%3ACI)
 
 Compiles PHP modules for the browser with [Uniter][].
 
