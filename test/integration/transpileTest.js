@@ -87,7 +87,7 @@ describe('Transpilation integration', function () {
     it('should transpile a simple PHP file to executable JS in synchronous mode', function () {
         var exports = {},
             module = {exports: exports},
-            transpiledJS = transformer.transform('<?php return 21;', 'my/entry.php'),
+            transpiledJS = transformer.transform('<?php return 21;', 'my/entry.php').code,
             compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
         compiledModule(hookedRequire, module, exports);
@@ -101,7 +101,7 @@ describe('Transpilation integration', function () {
             module = {exports: exports},
             transpiledJS;
         phpToJSConfig.sync = false; // Use async mode
-        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
+        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
         compiledModule(hookedRequire, module, exports);
@@ -119,7 +119,7 @@ describe('Transpilation integration', function () {
             transpiledJS;
         delete phpToJSConfig.sync; // Use async mode
         phpToJSConfig.mode = 'async';
-        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
+        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
         compiledModule(hookedRequire, module, exports);
@@ -137,7 +137,7 @@ describe('Transpilation integration', function () {
             transpiledJS;
         delete phpToJSConfig.sync; // Use psync mode
         phpToJSConfig.mode = 'psync';
-        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php');
+        transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
         compiledModule(hookedRequire, module, exports);
