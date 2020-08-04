@@ -139,7 +139,7 @@ describe('IO', function () {
                 expect(console.warn).not.to.have.been.called;
             });
 
-            it('should install a listener that copies data from the PHP stderr', function () {
+            it('should not install a listener that copies data from the PHP stderr', function () {
                 io.install(environment, phpifyConfig);
 
                 phpStderr.emit('data', 'Bang! Something went wrong');
