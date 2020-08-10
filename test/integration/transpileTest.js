@@ -13,44 +13,28 @@
 var expect = require('chai').expect,
     fs = require('fs'),
     path = require('path'),
+    phpConfigLoader = require('phpconfig').createConfigLoader(fs.existsSync),
     phpToAST = require('phptoast'),
     phpToJS = require('phptojs'),
     sinon = require('sinon'),
-    Transformer = require('../../src/Transformer');
+    Transformer = require('../../src/Transformer'),
+    TransformerFactory = require('../../src/TransformerFactory');
 
 describe('Transpilation integration', function () {
-    var contextDirectory,
-        globby,
+    var globby,
         hookedRequire,
         initialiserStubPath,
-        phpCoreConfig,
-        phpifyConfig,
-        phpParser,
-        phpToJSConfig,
         requireResolve,
-        transformer;
+        transformer,
+        transformerFactory;
 
     beforeEach(function () {
         initialiserStubPath = path.resolve(__dirname + '/../../src/php/initialiser_stub.php');
-        phpifyConfig = {};
-        phpToJSConfig = {
-            'include': [
-                'my/path/to/**/*.php'
-            ],
-            'sync': true
-        };
-        phpCoreConfig = {
-            topLevelConfig: {},
-            pluginConfigFilePaths: []
-        };
-        contextDirectory = 'my/path';
         globby = {
             sync: sinon.stub().returns([])
         };
-        phpParser = phpToAST.create(null, {'captureAllBounds': true});
         hookedRequire = function (path) {
             var compiledModule,
-                exports,
                 module,
                 transpiledJS;
 
@@ -60,9 +44,8 @@ describe('Transpilation integration', function () {
 
             transpiledJS = transformer.transform(fs.readFileSync(path), path).code;
             compiledModule = new Function('require', 'module', 'exports', transpiledJS);
-            exports = {};
-            module = {exports: exports};
-            compiledModule(hookedRequire, module, exports);
+            module = {exports: {}};
+            compiledModule(hookedRequire, module, module.exports);
 
             return module.exports;
         };
@@ -71,40 +54,39 @@ describe('Transpilation integration', function () {
         requireResolve.withArgs('phpify').returns(__dirname + '/../../.');
         requireResolve.withArgs('phpruntime').returns(require.resolve('phpruntime'));
 
-        transformer = new Transformer(
-            phpParser,
+        transformerFactory = new TransformerFactory(
+            Transformer,
+            phpConfigLoader,
+            phpToAST,
             phpToJS,
             requireResolve,
             globby,
-            initialiserStubPath,
-            phpifyConfig,
-            phpToJSConfig,
-            phpCoreConfig,
-            contextDirectory
+            initialiserStubPath
         );
     });
 
     it('should transpile a simple PHP file to executable JS in synchronous mode', function () {
-        var exports = {},
-            module = {exports: exports},
-            transpiledJS = transformer.transform('<?php return 21;', 'my/entry.php').code,
-            compiledModule = new Function('require', 'module', 'exports', transpiledJS);
+        var module = {exports: {}},
+            transpiledJS,
+            compiledModule;
+        transformer = transformerFactory.create(__dirname + '/fixtures/syncMode');
+        transpiledJS = transformer.transform('<?php return 21;', 'my/entry.php').code;
+        compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
-        compiledModule(hookedRequire, module, exports);
+        compiledModule(hookedRequire, module, module.exports);
 
         expect(module.exports.getNative()).to.equal(21);
     });
 
     it('should transpile a simple PHP file to executable JS in asynchronous mode using the "sync" option', function (done) {
         var compiledModule,
-            exports = {},
-            module = {exports: exports},
+            module = {exports: {}},
             transpiledJS;
-        phpToJSConfig.sync = false; // Use async mode
+        transformer = transformerFactory.create(__dirname + '/fixtures/asyncModeViaSyncOption');
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
-        compiledModule(hookedRequire, module, exports);
+        compiledModule(hookedRequire, module, module.exports);
 
         module.exports.then(function (resultValue) {
             expect(resultValue.getNative()).to.equal(1001);
@@ -114,15 +96,13 @@ describe('Transpilation integration', function () {
 
     it('should transpile a simple PHP file to executable JS in asynchronous mode using the "mode" option', function (done) {
         var compiledModule,
-            exports = {},
-            module = {exports: exports},
+            module = {exports: {}},
             transpiledJS;
-        delete phpToJSConfig.sync; // Use async mode
-        phpToJSConfig.mode = 'async';
+        transformer = transformerFactory.create(__dirname + '/fixtures/asyncModeViaModeOption');
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
-        compiledModule(hookedRequire, module, exports);
+        compiledModule(hookedRequire, module, module.exports);
 
         module.exports.then(function (resultValue) {
             expect(resultValue.getNative()).to.equal(1001);
@@ -132,15 +112,13 @@ describe('Transpilation integration', function () {
 
     it('should transpile a simple PHP file to executable JS in Promise-synchronous mode using the "mode" option', function (done) {
         var compiledModule,
-            exports = {},
-            module = {exports: exports},
+            module = {exports: {}},
             transpiledJS;
-        delete phpToJSConfig.sync; // Use psync mode
-        phpToJSConfig.mode = 'psync';
+        transformer = transformerFactory.create(__dirname + '/fixtures/psyncMode');
         transpiledJS = transformer.transform('<?php return 1001;', 'my/entry.php').code;
         compiledModule = new Function('require', 'module', 'exports', transpiledJS);
 
-        compiledModule(hookedRequire, module, exports);
+        compiledModule(hookedRequire, module, module.exports);
 
         module.exports.then(function (resultValue) {
             expect(resultValue.getNative()).to.equal(1001);
