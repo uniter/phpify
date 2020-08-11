@@ -28,6 +28,7 @@ var _ = require('microdash'),
  * @param {string} initialiserStubPath
  * @param {Object} phpifyConfig
  * @param {Object} phpToJSConfig
+ * @param {Object} transpilerConfig
  * @param {LibraryConfigShape} phpCoreConfig
  * @param {string} contextDirectory
  * @constructor
@@ -40,6 +41,7 @@ function Transformer(
     initialiserStubPath,
     phpifyConfig,
     phpToJSConfig,
+    transpilerConfig,
     phpCoreConfig,
     contextDirectory
 ) {
@@ -79,6 +81,10 @@ function Transformer(
      * @type {Function}
      */
     this.resolveRequire = resolveRequire;
+    /**
+     * @type {Object}
+     */
+    this.transpilerConfig = transpilerConfig;
 }
 
 _.extend(Transformer.prototype, {
@@ -137,7 +143,9 @@ _.extend(Transformer.prototype, {
                         }
                     },
                     transformer.phpToJSConfig
-                )
+                ),
+                // Any custom rules etc. will need to be specified here instead
+                transformer.transpilerConfig
             );
         }
 

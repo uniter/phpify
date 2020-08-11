@@ -81,6 +81,7 @@ _.extend(TransformerFactory.prototype, {
             phpifyConfig = uniterConfig.getConfigsForLibrary('phpify').mergeUniqueObjects(),
             phpToASTConfig = uniterConfig.getConfigsForLibrary('phpify', 'phptoast').mergeUniqueObjects(),
             phpToJSConfig = uniterConfig.getConfigsForLibrary('phpify', 'phptojs').mergeUniqueObjects(),
+            transpilerConfig = uniterConfig.getConfigsForLibrary('phpify', 'transpiler').mergeUniqueObjects(),
             phpParser = factory.phpToAST.create(null, _.extend({'captureAllBounds': true}, phpToASTConfig));
 
         return new factory.Transformer(
@@ -91,6 +92,7 @@ _.extend(TransformerFactory.prototype, {
             factory.initialiserStubPath,
             phpifyConfig,
             phpToJSConfig,
+            transpilerConfig,
             phpCoreConfig,
             contextDirectory
         );

@@ -27,6 +27,7 @@ describe('Transformer', function () {
         phpToJSConfig,
         resolveRequire,
         transformer,
+        transpilerConfig,
         initialiserStubPath;
 
     beforeEach(function () {
@@ -53,6 +54,7 @@ describe('Transformer', function () {
             transpile: sinon.stub().returns('(function () { return "transpiler result"; }());')
         };
         phpToJSConfig = {};
+        transpilerConfig = {};
         resolveRequire = sinon.stub();
         initialiserStubPath = '/path/to/my/initialiser_stub.php';
         transformer = new Transformer(
@@ -63,6 +65,7 @@ describe('Transformer', function () {
             initialiserStubPath,
             phpifyConfig,
             phpToJSConfig,
+            transpilerConfig,
             phpCoreConfig,
             contextDirectory
         );
@@ -196,7 +199,7 @@ EOS
             expect(callTransform()).to.equal('(function () { return "transpiler result"; }());');
         });
 
-        it('should pass phpToJS options through to phpToJS', function () {
+        it('should pass PHPToJS options through to PHPToJS', function () {
             phpToJSConfig.myOption = 123;
 
             callTransform('/path/to/my/second/file.js');
@@ -263,6 +266,20 @@ EOS*/;}) + ' '; // jshint ignore:line
 
             expect(phpToJS.transpile.args[0][1].sourceMap).to.have.property('returnMap');
             expect(phpToJS.transpile.args[0][1].sourceMap.returnMap).to.be.true;
+        });
+
+        it('should pass Transpiler options through to PHPToJS', function () {
+            transpilerConfig.myExtraOption = 21;
+
+            callTransform('/path/to/my/second/file.js', '<?php $my = "source";');
+
+            expect(phpToJS.transpile).to.have.been.calledWith(
+                sinon.match.any,
+                sinon.match.any,
+                sinon.match({
+                    myExtraOption: 21
+                })
+            );
         });
     });
 });

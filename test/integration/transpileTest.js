@@ -125,4 +125,17 @@ describe('Transpilation integration', function () {
             done();
         }, done).catch(done);
     });
+
+    it('should allow custom rules to be defined, parsed and transpiled', function () {
+        var compiledModule,
+            module = {exports: {}},
+            transpiledJS;
+        transformer = transformerFactory.create(__dirname + '/fixtures/customRule');
+        transpiledJS = transformer.transform('<?php return "It is " . §"20mg";', 'my/entry.php').code;
+        compiledModule = new Function('require', 'module', 'exports', transpiledJS);
+
+        compiledModule(hookedRequire, module, module.exports);
+
+        expect(module.exports.getNative()).to.equal('It is 20mg (approx.)');
+    });
 });
