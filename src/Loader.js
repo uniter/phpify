@@ -156,17 +156,17 @@ _.extend(Loader.prototype, {
 
     /**
      * Configures the environment and path for the given module, and either executes it
-     * and returns the result or just returns the module factory depending on mode.
-     * Used by all compiled PHP modules
+     * and exports the result or just exports the module factory depending on mode.
+     * Used by all compiled PHP modules.
      *
      * @param {string} filePath
+     * @param {Object} module CommonJS module object
      * @param {Function} moduleFactory
-     * @returns {Function|Promise|Value}
      */
-    load: function (filePath, moduleFactory) {
+    load: function (filePath, module, moduleFactory) {
         var loader = this;
 
-        return loader.moduleRepository.load(filePath, moduleFactory, loader.getEnvironment());
+        module.exports = loader.moduleRepository.load(filePath, module.id, moduleFactory, loader.getEnvironment());
     }
 });
 

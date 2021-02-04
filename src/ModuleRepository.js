@@ -21,9 +21,9 @@ var _ = require('microdash'),
  */
 function ModuleRepository(requireCache) {
     /**
-     * @type {Object.<string, Function>} PHP module factories, indexed by path
+     * @type {Object.<string, {id: string|number, factory: Function}>} PHP module factories, indexed by path
      */
-    this.configuredModuleFactories = {};
+    this.configuredModules = {};
     /**
      * @type {boolean} Indicates that a module's factory function should be returned without execution
      */
@@ -55,12 +55,13 @@ _.extend(ModuleRepository.prototype, {
      */
     getModuleFactory: function (filePath) {
         var cachePath,
+            configuredModule,
             configuredModuleFactory,
             repository = this;
 
-        if (hasOwn.call(repository.configuredModuleFactories, filePath)) {
+        if (hasOwn.call(repository.configuredModules, filePath)) {
             // Module has already been configured: return the cached module factory
-            return repository.configuredModuleFactories[filePath];
+            return repository.configuredModules[filePath].factory;
         }
 
         // Module has not yet been loaded: require it via the fetcher function. The transpiled module
@@ -77,26 +78,30 @@ _.extend(ModuleRepository.prototype, {
 
         // By this point, the require()'d module should have called back via .prepare()
         // [via <Public API::Loader>.run()] and so its wrapper should be in the
-        if (!hasOwn.call(repository.configuredModuleFactories, filePath)) {
+        if (!hasOwn.call(repository.configuredModules, filePath)) {
             throw new Error('Unexpected state: module "' + filePath + '" should have been loaded by now');
         }
-        if (repository.configuredModuleFactories[filePath] !== configuredModuleFactory) {
+        if (repository.configuredModules[filePath].factory !== configuredModuleFactory) {
             throw new Error('Unexpected state: factory for module "' + filePath + '" loaded incorrectly');
         }
 
         cachePath = './' + filePath;
+        configuredModule = repository.configuredModules[filePath];
 
-        if (!hasOwn.call(repository.requireCache, cachePath)) {
-            throw new Error('Expected path "' + cachePath + '" to be in require.cache, but it was not');
+        if (!hasOwn.call(repository.requireCache, configuredModule.id)) {
+            throw new Error(
+                'Expected path "' + cachePath + '" (id "' + configuredModule.id + '") to be in require.cache, ' +
+                'but it was not'
+            );
         }
 
         // Delete the module's exports object from the cache: it was not executed as we only wanted
         // to extract the factory function, so that will have been stored instead.
         // If the module's factory function is ever needed again, it will be fetched from the
-        // .configuredModuleFactories[...] cache instead
-        delete repository.requireCache[cachePath];
+        // .configuredModules[...] cache instead
+        delete repository.requireCache[configuredModule.id];
 
-        return repository.configuredModuleFactories[filePath];
+        return repository.configuredModules[filePath].factory;
     },
 
     /**
@@ -115,15 +120,19 @@ _.extend(ModuleRepository.prototype, {
      * Used by all compiled PHP modules
      *
      * @param {string} filePath
+     * @param {string|number} moduleID
      * @param {Function} moduleFactory
      * @param {Environment} environment
      * @returns {Function}
      */
-    load: function (filePath, moduleFactory, environment) {
+    load: function (filePath, moduleID, moduleFactory, environment) {
         var repository = this,
             configuredModuleFactory = moduleFactory.using({path: filePath}, environment);
 
-        repository.configuredModuleFactories[filePath] = configuredModuleFactory;
+        repository.configuredModules[filePath] = {
+            id: moduleID,
+            factory: configuredModuleFactory
+        };
 
         if (repository.loadingModuleFactoryOnly) {
             // Only the factory is needed, don't execute
@@ -143,7 +152,7 @@ _.extend(ModuleRepository.prototype, {
     moduleExists: function (filePath) {
         var repository = this;
 
-        if (hasOwn.call(repository.configuredModuleFactories, filePath)) {
+        if (hasOwn.call(repository.configuredModules, filePath)) {
             // Module has already been configured: return the cached module factory
             return true;
         }

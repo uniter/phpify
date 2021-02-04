@@ -27,8 +27,8 @@ describe('ModuleRepository', function () {
         environment = {};
         moduleFactoryFetcher = sinon.stub();
         requireCache = {
-            './my/first/module/path.php': {},
-            './my/second/module/path.php': {}
+            'first-module-id': {},
+            'second-module-id': {}
         };
 
         // First fake module file that does exist
@@ -41,7 +41,7 @@ describe('ModuleRepository', function () {
         moduleFactoryFetcher
             .withArgs('my/first/module/path.php', false)
             .callsFake(function (path) {
-                return repository.load(path, originalFirstModuleFactory, environment);
+                return repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
             });
         moduleFactoryFetcher
             .withArgs('my/first/module/path.php', true)
@@ -57,7 +57,7 @@ describe('ModuleRepository', function () {
         moduleFactoryFetcher
             .withArgs('my/second/module/path.php', false)
             .callsFake(function (path) {
-                return repository.load(path, originalSecondModuleFactory, environment);
+                return repository.load(path, 'second-module-id', originalSecondModuleFactory, environment);
             });
         moduleFactoryFetcher
             .withArgs('my/second/module/path.php', true)
@@ -110,7 +110,7 @@ describe('ModuleRepository', function () {
                 moduleFactoryFetcher
                     .withArgs('my/first/module/path.php', false)
                     .callsFake(function (path) {
-                        repository.load(path, originalFirstModuleFactory, environment);
+                        repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
 
                         return {}; // Incorrect: this should be returning the configured module factory
                     });
@@ -121,11 +121,14 @@ describe('ModuleRepository', function () {
             });
 
             it('should throw when the fetcher does not cache the module in require.cache[...] correctly', function () {
-                delete requireCache['./my/first/module/path.php'];
+                delete requireCache['first-module-id'];
 
                 expect(function () {
                     repository.getModuleFactory('my/first/module/path.php');
-                }).to.throw('Expected path "./my/first/module/path.php" to be in require.cache, but it was not');
+                }).to.throw(
+                    'Expected path "./my/first/module/path.php" (id "first-module-id") ' +
+                    'to be in require.cache, but it was not'
+                );
             });
 
             it('should remove the module from require.cache', function () {
@@ -177,7 +180,7 @@ describe('ModuleRepository', function () {
             moduleFactoryFetcher
                 .withArgs('my/first/module/path.php', false)
                 .callsFake(function (path) {
-                    configuredModuleFactory = repository.load(path, originalFirstModuleFactory, environment);
+                    configuredModuleFactory = repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
 
                     return configuredModuleFactory;
                 });
@@ -191,12 +194,12 @@ describe('ModuleRepository', function () {
             var result = {};
             engine.execute.returns(result);
 
-            expect(repository.load('my/first/module/path.php', originalModuleFactory, environment))
+            expect(repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment))
                 .to.equal(result);
         });
 
         it('should pass the path of the module to [moduleFactory].using(...) as an option', function () {
-            repository.load('my/first/module/path.php', originalModuleFactory, environment);
+            repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment);
 
             expect(originalModuleFactory.using).to.have.been.calledWith(sinon.match({
                 path: 'my/first/module/path.php'
@@ -204,7 +207,7 @@ describe('ModuleRepository', function () {
         });
 
         it('should pass the Environment through to [moduleFactory].using(...)', function () {
-            repository.load('my/first/module/path.php', originalModuleFactory, environment);
+            repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment);
 
             expect(originalModuleFactory.using).to.have.been.calledWith(
                 sinon.match.any,
