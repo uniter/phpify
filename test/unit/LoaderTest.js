@@ -168,24 +168,29 @@ describe('Loader', function () {
 
     describe('load()', function () {
         it('should load the module factory via the ModuleRepository correctly', function () {
-            var moduleFactory = sinon.stub();
+            var module = {exports: null, id: 'my-module'},
+                moduleFactory = sinon.stub();
             moduleRepository.load.returns(moduleFactory);
 
-            loader.load('my/module/path.php', moduleFactory);
+            loader.load('my/module/path.php', module, moduleFactory);
 
             expect(moduleRepository.load).to.have.been.calledOnce;
             expect(moduleRepository.load).to.have.been.calledWith(
                 'my/module/path.php',
+                'my-module',
                 sinon.match.same(moduleFactory),
                 sinon.match.same(environment)
             );
         });
 
-        it('should return the module factory from the ModuleRepository', function () {
-            var moduleFactory = sinon.stub();
+        it('should export the ModuleRepository result from the module', function () {
+            var module = {exports: null, id: 'my-module'},
+                moduleFactory = sinon.stub();
             moduleRepository.load.returns(moduleFactory);
 
-            expect(loader.load('my/module/path.php', moduleFactory)).to.equal(moduleFactory);
+            loader.load('my/module/path.php', module, moduleFactory);
+
+            expect(module.exports).to.equal(moduleFactory);
         });
     });
 });

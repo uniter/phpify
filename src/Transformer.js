@@ -255,11 +255,11 @@ EOS*/;}, { // jshint ignore:line
         }
 
         prefixJS = 'require(' + JSON.stringify(transformer.initialiserStubPath) + ');' +
-            '\nmodule.exports = require(' +
+            '\nrequire(' +
             JSON.stringify(apiPath) +
             ').load(' +
             JSON.stringify(path.relative(transformer.contextDirectory, file)) +
-            ', ';
+            ', module, ';
         suffixJS = ');';
 
         return compileModule(content, path.relative(transformer.contextDirectory, file), prefixJS, suffixJS);

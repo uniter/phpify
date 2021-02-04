@@ -236,7 +236,7 @@ EOS
         it('should pass the prefix with a require of the initialiser stub module and then this normal module factory', function () {
             var expectedPrefixJS = nowdoc(function () {/*<<<EOS
 require("/path/to/my/initialiser_stub.php");
-module.exports = require("/path/to/node_modules/phpify/api").load("../../my/second/file.js",
+require("/path/to/node_modules/phpify/api").load("../../my/second/file.js", module,
 EOS*/;}) + ' '; // jshint ignore:line
 
             callTransform('/path/to/my/second/file.js');
