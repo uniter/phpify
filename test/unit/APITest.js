@@ -21,7 +21,8 @@ describe('API', function () {
         fileSystem,
         Loader,
         ModuleRepository,
-        phpConfigImporter;
+        phpConfigImporter,
+        requireCache;
 
     beforeEach(function () {
         environmentProvider = sinon.createStubInstance(EnvironmentProvider);
@@ -30,11 +31,12 @@ describe('API', function () {
         Loader = sinon.stub();
         ModuleRepository = sinon.stub();
         phpConfigImporter = {};
+        requireCache = {};
 
         FileSystem.returns(fileSystem);
         FileSystem.prototype.getModuleFactory = function () {};
 
-        api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter);
+        api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter, requireCache);
     });
 
     describe('createLoader()', function () {
@@ -49,7 +51,7 @@ describe('API', function () {
             api.createLoader();
 
             expect(ModuleRepository).to.have.been.calledOnce;
-            expect(ModuleRepository).to.have.been.calledWith(require.cache);
+            expect(ModuleRepository).to.have.been.calledWith(requireCache);
         });
 
         it('should only create one FileSystem', function () {

@@ -26,7 +26,7 @@
     "test": "npm run jshint && npm run mocha"
   },
   "dependencies": {
-    "globby": "^6.0.0",
+    "globby": "^11.0.2",
     "lie": "^3.3.0",
     "microdash": "^1.4.2",
     "nowdoc": "~1.0",
@@ -40,7 +40,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "jshint": "^2.12.0",
-    "mocha": "^7.2.0",
+    "mocha": "^8.3.0",
     "sinon": "^9.0.2",
     "sinon-chai": "^3.5.0"
   },

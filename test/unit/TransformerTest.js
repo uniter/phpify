@@ -74,7 +74,7 @@ describe('Transformer', function () {
         resolveRequire.withArgs('phpruntime').returns('/path/to/node_modules/phpruntime/index.js');
 
         callTransform = function (file, content) {
-            return transformer.transform(content || '', file || '/path/to/my/file.js');
+            return transformer.transform(content || '', file || '/path/to/my/file.php');
         };
     });
 
@@ -91,8 +91,8 @@ describe('Transformer', function () {
                 '/path/to/the/contextdir/my/second/**/*.php',
                 '!/path/to/the/contextdir/my/third/**/*.php'
             ]).returns([
-                '/my/first/matched/file.js',
-                '/my/second/matched/file.js'
+                '/my/first/matched/file.php',
+                '/my/second/matched/file.php'
             ]);
 
             callTransform = callTransform.bind(null, initialiserStubPath);
@@ -119,8 +119,8 @@ require("/path/to/node_modules/phpify/api").installModules(function (path, check
     }
 
     switch (path) {
-    case handlePath("../../../../my/first/matched/file.js"): return require("./../../../my/first/matched/file.js");
-    case handlePath("../../../../my/second/matched/file.js"): return require("./../../../my/second/matched/file.js");
+    case handlePath("../../../../my/first/matched/file.php"): return require("./../../../my/first/matched/file.php");
+    case handlePath("../../../../my/second/matched/file.php"): return require("./../../../my/second/matched/file.php");
     }
 
     return checkExistence ? exists : null;
@@ -156,8 +156,8 @@ require("/path/to/node_modules/phpify/api").installModules(function (path, check
     }
 
     switch (path) {
-    case handlePath("../../../../my/first/matched/file.js"): return require("./../../../my/first/matched/file.js");
-    case handlePath("../../../../my/second/matched/file.js"): return require("./../../../my/second/matched/file.js");
+    case handlePath("../../../../my/first/matched/file.php"): return require("./../../../my/first/matched/file.php");
+    case handlePath("../../../../my/second/matched/file.php"): return require("./../../../my/second/matched/file.php");
     }
 
     return checkExistence ? exists : null;
@@ -190,19 +190,27 @@ EOS
                 '/path/to/the/contextdir/my/first/**/*.php',
                 '/path/to/the/contextdir/my/second/**/*.php'
             ]).returns([
-                '/my/first/matched/file.js',
-                '/my/second/matched/file.js'
+                '/my/first/matched/file.php',
+                '/my/second/matched/file.php'
             ]);
         });
 
         it('should return the result from the transpiler', function () {
-            expect(callTransform()).to.equal('(function () { return "transpiler result"; }());');
+            phpParser.parse
+                .withArgs('<?php print 1001;')
+                .returns({my: 'AST'});
+            phpToJS.transpile
+                .withArgs({my: 'AST'})
+                .returns('(function () { return "transpiler result"; }());');
+
+            expect(callTransform('/path/to/my/file.php', '<?php print 1001;'))
+                .to.equal('(function () { return "transpiler result"; }());');
         });
 
         it('should pass PHPToJS options through to PHPToJS', function () {
             phpToJSConfig.myOption = 123;
 
-            callTransform('/path/to/my/second/file.js');
+            callTransform('/path/to/my/second/file.php');
 
             expect(phpToJS.transpile).to.have.been.calledWith(
                 sinon.match.any,
@@ -225,7 +233,7 @@ EOS
             resolveRequire.withArgs('phpruntime').returns('/path/to/the/runtime/index.js');
             config.phpToJS = {myOption: 123};
 
-            callTransform('/path/to/my/second/file.js');
+            callTransform('/path/to/my/second/file.php');
 
             expect(phpToJS.transpile).to.have.been.calledWith(
                 sinon.match.any,
@@ -236,10 +244,10 @@ EOS
         it('should pass the prefix with a require of the initialiser stub module and then this normal module factory', function () {
             var expectedPrefixJS = nowdoc(function () {/*<<<EOS
 require("/path/to/my/initialiser_stub.php");
-require("/path/to/node_modules/phpify/api").load("../../my/second/file.js", module,
+require("/path/to/node_modules/phpify/api").load("../../my/second/file.php", module,
 EOS*/;}) + ' '; // jshint ignore:line
 
-            callTransform('/path/to/my/second/file.js');
+            callTransform('/path/to/my/second/file.php');
 
             // We need to pass the prefix and suffix code through to PHPToJS separately
             // so that it can calculate the source map line numbers correctly
@@ -248,21 +256,21 @@ EOS*/;}) + ' '; // jshint ignore:line
         });
 
         it('should pass the suffix through to PHPToJS', function () {
-            callTransform('/path/to/my/second/file.js');
+            callTransform('/path/to/my/second/file.php');
 
             expect(phpToJS.transpile.args[0][1]).to.have.property('suffix');
             expect(phpToJS.transpile.args[0][1].suffix).to.equal(');');
         });
 
         it('should pass the source content for the source map through to PHPToJS', function () {
-            callTransform('/path/to/my/second/file.js', '<?php $my = "source";');
+            callTransform('/path/to/my/second/file.php', '<?php $my = "source";');
 
             expect(phpToJS.transpile.args[0][1].sourceMap).to.have.property('sourceContent');
             expect(phpToJS.transpile.args[0][1].sourceMap.sourceContent).to.equal('<?php $my = "source";');
         });
 
         it('should specify to PHPToJS that the raw source map object should be returned', function () {
-            callTransform('/path/to/my/second/file.js', '<?php $my = "source";');
+            callTransform('/path/to/my/second/file.php', '<?php $my = "source";');
 
             expect(phpToJS.transpile.args[0][1].sourceMap).to.have.property('returnMap');
             expect(phpToJS.transpile.args[0][1].sourceMap.returnMap).to.be.true;
@@ -271,7 +279,7 @@ EOS*/;}) + ' '; // jshint ignore:line
         it('should pass Transpiler options through to PHPToJS', function () {
             transpilerConfig.myExtraOption = 21;
 
-            callTransform('/path/to/my/second/file.js', '<?php $my = "source";');
+            callTransform('/path/to/my/second/file.php', '<?php $my = "source";');
 
             expect(phpToJS.transpile).to.have.been.calledWith(
                 sinon.match.any,
@@ -280,6 +288,62 @@ EOS*/;}) + ' '; // jshint ignore:line
                     myExtraOption: 21
                 })
             );
+        });
+
+        describe('when stubbed', function () {
+            it('should pass a string value through as the PHP source', function () {
+                phpifyConfig.stub = {
+                    '../../my/stubbed_file.php': '<?php print 21;'
+                };
+
+                callTransform('/path/to/my/stubbed_file.php', '<?php $my = "source";');
+
+                expect(phpParser.parse).to.have.been.calledOnce;
+                expect(phpParser.parse).to.have.been.calledWith('<?php print 21;');
+            });
+
+            it('should pass a primitive boolean value through as code to return it', function () {
+                phpifyConfig.stub = {
+                    '../../my/stubbed_file.php': true
+                };
+
+                callTransform('/path/to/my/stubbed_file.php', '<?php $my = "source";');
+
+                expect(phpParser.parse).to.have.been.calledOnce;
+                expect(phpParser.parse).to.have.been.calledWith('<?php return true;');
+            });
+
+            it('should pass a primitive number value through as code to return it', function () {
+                phpifyConfig.stub = {
+                    '../../my/stubbed_file.php': 23457
+                };
+
+                callTransform('/path/to/my/stubbed_file.php', '<?php $my = "source";');
+
+                expect(phpParser.parse).to.have.been.calledOnce;
+                expect(phpParser.parse).to.have.been.calledWith('<?php return 23457;');
+            });
+
+            it('should pass null through as code to return it', function () {
+                phpifyConfig.stub = {
+                    '../../my/stubbed_file.php': null
+                };
+
+                callTransform('/path/to/my/stubbed_file.php', '<?php $my = "source";');
+
+                expect(phpParser.parse).to.have.been.calledOnce;
+                expect(phpParser.parse).to.have.been.calledWith('<?php return null;');
+            });
+
+            it('should throw if an invalid stub value type is given', function () {
+                phpifyConfig.stub = {
+                    '../../my/stubbed_file.php': {iAm: 'invalid'}
+                };
+
+                expect(function () {
+                    callTransform('/path/to/my/stubbed_file.php', '<?php $my = "source";');
+                }).to.throw('Unsupported stub type "object" for file "../../my/stubbed_file.php"');
+            });
         });
     });
 });

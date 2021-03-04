@@ -13,7 +13,9 @@ var _ = require('microdash'),
     BOOTSTRAPS = 'bootstraps',
     INCLUDE = 'include',
     MODE = 'mode',
+    STUB = 'stub',
     SYNC = 'sync',
+    hasOwn = {}.hasOwnProperty,
     nowdoc = require('nowdoc'),
     path = require('path');
 
@@ -103,8 +105,11 @@ _.extend(Transformer.prototype, {
             apiPath = path.dirname(transformer.resolveRequire('phpify')) +
                 '/api' +
                 (mode === 'async' ? '' : '/' + mode),
+            stubs = transformer.phpifyConfig[STUB] || {},
             prefixJS,
+            relativeFilePath = path.relative(transformer.contextDirectory, file),
             runtimePath = path.dirname(transformer.resolveRequire('phpruntime')),
+            stub,
             suffixJS;
 
         /**
@@ -254,15 +259,31 @@ EOS*/;}, { // jshint ignore:line
             };
         }
 
+        if (hasOwn.call(stubs, relativeFilePath)) {
+            stub = stubs[relativeFilePath];
+
+            if (typeof stub === 'string') {
+                // String values provide some raw PHP source code for the stub
+                content = stub;
+            } else if (typeof stub === 'boolean' || typeof stub === 'number' || stub === null) {
+                // Primitive values provide a literal value for the module to return
+                content = '<?php return ' + stub + ';';
+            } else {
+                throw new Error(
+                    'Unsupported stub type "' + typeof stub + '" for file "' + relativeFilePath + '"'
+                );
+            }
+        }
+
         prefixJS = 'require(' + JSON.stringify(transformer.initialiserStubPath) + ');' +
             '\nrequire(' +
             JSON.stringify(apiPath) +
             ').load(' +
-            JSON.stringify(path.relative(transformer.contextDirectory, file)) +
+            JSON.stringify(relativeFilePath) +
             ', module, ';
         suffixJS = ');';
 
-        return compileModule(content, path.relative(transformer.contextDirectory, file), prefixJS, suffixJS);
+        return compileModule(content, relativeFilePath, prefixJS, suffixJS);
     }
 });
 
