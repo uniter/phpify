@@ -22,7 +22,7 @@ var API = require('../src/API'),
     phpRuntime = require('phpruntime/psync'),
     io = new IO(console),
     environmentProvider = new EnvironmentProvider(phpRuntime, performance, io),
-    api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter),
+    api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter, require.cache),
     loader = api.createLoader();
 
 module.exports = loader;

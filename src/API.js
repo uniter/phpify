@@ -19,6 +19,7 @@ var _ = require('microdash');
  * @param {class} ModuleRepository
  * @param {EnvironmentProvider} environmentProvider
  * @param {ConfigImporter} phpConfigImporter
+ * @param {Object} requireCache
  * @constructor
  */
 function API(
@@ -26,7 +27,8 @@ function API(
     Loader,
     ModuleRepository,
     environmentProvider,
-    phpConfigImporter
+    phpConfigImporter,
+    requireCache
 ) {
     /**
      * @type {EnvironmentProvider}
@@ -48,6 +50,10 @@ function API(
      * @type {ConfigImporter}
      */
     this.phpConfigImporter = phpConfigImporter;
+    /**
+     * @type {Object}
+     */
+    this.requireCache = requireCache;
 }
 
 _.extend(API.prototype, {
@@ -59,7 +65,7 @@ _.extend(API.prototype, {
      */
     createLoader: function () {
         var api = this,
-            moduleRepository = new api.ModuleRepository(require.cache),
+            moduleRepository = new api.ModuleRepository(api.requireCache),
             fileSystem = new api.FileSystem(moduleRepository);
 
         return new api.Loader(moduleRepository, fileSystem, api.environmentProvider, api.phpConfigImporter);
