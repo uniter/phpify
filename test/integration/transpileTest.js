@@ -80,7 +80,7 @@ describe('Transpilation integration', function () {
             if (!/\.php$/.test(requirePath)) {
                 // Async mode is the default
                 if (requirePath === '/my/fake/phpify/api' || requirePath === '/my/fake/phpify/api/async') {
-                    return syncLoader;
+                    return asyncLoader;
                 }
 
                 if (requirePath === '/my/fake/phpify/api/sync') {
