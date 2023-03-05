@@ -12,8 +12,18 @@
 module.exports = {
     nodes: {
         // This function will be called for each parsed custom expression AST node
-        N_MY_CUSTOM_EXPRESSION: function (node, interpret) {
-            return interpret(node.operand) + '.coerceToString().concat(tools.valueFactory.createString(" (approx.)"))';
+        N_MY_CUSTOM_EXPRESSION: function (node, interpret, context) {
+            return [
+                context.useCoreSymbol('concat'),
+                '(',
+                interpret(node.operand),
+                ', ',
+                context.useCoreSymbol('createString'),
+                '(',
+                JSON.stringify(' (approx.)'),
+                ')',
+                ')'
+            ];
         },
     },
 };

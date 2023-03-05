@@ -30,19 +30,19 @@
     "lie": "^3.3.0",
     "microdash": "^1.4.2",
     "nowdoc": "~1.0",
-    "phpconfig": "^1.0.0",
-    "phpruntime": "^7.0.0",
-    "phptoast": "^8.0.0",
-    "phptojs": "^8.1.0",
+    "phpconfig": "^1.0.3",
+    "phpruntime": "^9.0.1",
+    "phptoast": "^9.1.1",
+    "phptojs": "^10.0.1",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
+    "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
-    "jshint": "^2.12.0",
-    "mocha": "^8.3.0",
-    "sinon": "^9.0.2",
-    "sinon-chai": "^3.5.0"
+    "jshint": "^2.13.6",
+    "mocha": "^10.2.0",
+    "sinon": "^15.0.1",
+    "sinon-chai": "^3.7.0"
   },
   "engines": {
     "node": ">=0.6"
