@@ -11,8 +11,11 @@
 
 /*global global */
 var API = require('../src/API'),
-    EnvironmentProvider = require('../src/EnvironmentProvider'),
+    Environment = require('../src/Environment/Environment'),
+    EnvironmentFactory = require('../src/Environment/EnvironmentFactory'),
+    EnvironmentProvider = require('../src/Environment/EnvironmentProvider'),
     FileSystem = require('../src/FileSystem'),
+    InitialiserContext = require('../src/Initialiser/InitialiserContext'),
     IO = require('../src/IO'),
     Loader = require('../src/Loader'),
     ModuleRepository = require('../src/ModuleRepository'),
@@ -21,8 +24,19 @@ var API = require('../src/API'),
     phpConfigImporter = require('phpconfig').configImporter,
     phpRuntime = require('phpruntime'),
     io = new IO(console),
-    environmentProvider = new EnvironmentProvider(phpRuntime, performance, io),
-    api = new API(FileSystem, Loader, ModuleRepository, environmentProvider, phpConfigImporter, require.cache),
+    environmentFactory = new EnvironmentFactory(Environment),
+    environmentProvider = new EnvironmentProvider(environmentFactory, phpRuntime, performance, io),
+    initialiserLoader = require('../src/shared/initialiserLoader'),
+    api = new API(
+        FileSystem,
+        Loader,
+        ModuleRepository,
+        InitialiserContext,
+        environmentProvider,
+        initialiserLoader,
+        phpConfigImporter,
+        require.cache
+    ),
     loader = api.createLoader();
 
 module.exports = loader;

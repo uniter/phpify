@@ -9,9 +9,8 @@
 
 'use strict';
 
-var chai = require('chai'),
-    chaiAsPromised = require('chai-as-promised'),
-    sinonChai = require('sinon-chai');
+var InitialiserLoader = require('../Initialiser/InitialiserLoader');
 
-chai.use(chaiAsPromised);
-chai.use(sinonChai);
+module.exports = new InitialiserLoader(function () {
+    return require('../php/initialiser_stub.php');
+});

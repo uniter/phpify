@@ -10,6 +10,7 @@
 'use strict';
 
 var expect = require('chai').expect,
+    hasOwn = {}.hasOwnProperty,
     sinon = require('sinon'),
     ModuleRepository = require('../../src/ModuleRepository');
 
@@ -36,12 +37,12 @@ describe('ModuleRepository', function () {
         originalFirstModuleFactory.using = sinon.stub();
         configuredFirstModuleFactory = sinon.stub();
         originalFirstModuleFactory.using
-            .withArgs({path: 'my/first/module/path.php'}, sinon.match.same(environment))
+            .withArgs({path: 'my/first/module/path.php'})
             .returns(configuredFirstModuleFactory);
         moduleFactoryFetcher
             .withArgs('my/first/module/path.php', false)
             .callsFake(function (path) {
-                return repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
+                return repository.load(path, 'first-module-id', originalFirstModuleFactory);
             });
         moduleFactoryFetcher
             .withArgs('my/first/module/path.php', true)
@@ -52,12 +53,12 @@ describe('ModuleRepository', function () {
         originalSecondModuleFactory.using = sinon.stub();
         configuredSecondModuleFactory = sinon.stub();
         originalSecondModuleFactory.using
-            .withArgs({path: 'my/second/module/path.php'}, sinon.match.same(environment))
+            .withArgs({path: 'my/second/module/path.php'})
             .returns(configuredSecondModuleFactory);
         moduleFactoryFetcher
             .withArgs('my/second/module/path.php', false)
             .callsFake(function (path) {
-                return repository.load(path, 'second-module-id', originalSecondModuleFactory, environment);
+                return repository.load(path, 'second-module-id', originalSecondModuleFactory);
             });
         moduleFactoryFetcher
             .withArgs('my/second/module/path.php', true)
@@ -110,7 +111,7 @@ describe('ModuleRepository', function () {
                 moduleFactoryFetcher
                     .withArgs('my/first/module/path.php', false)
                     .callsFake(function (path) {
-                        repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
+                        repository.load(path, 'first-module-id', originalFirstModuleFactory);
 
                         return {}; // Incorrect: this should be returning the configured module factory
                     });
@@ -126,15 +127,14 @@ describe('ModuleRepository', function () {
                 expect(function () {
                     repository.getModuleFactory('my/first/module/path.php');
                 }).to.throw(
-                    'Expected path "./my/first/module/path.php" (id "first-module-id") ' +
-                    'to be in require.cache, but it was not'
+                    'Path "./my/first/module/path.php" (id "first-module-id") is not in require.cache'
                 );
             });
 
             it('should remove the module from require.cache', function () {
                 repository.getModuleFactory('my/first/module/path.php');
 
-                expect(requireCache).not.to.have.property('./my/first/module/path.php');
+                expect(requireCache).not.to.have.property('first-module-id');
             });
 
             it('should return the configured module factory', function () {
@@ -144,7 +144,7 @@ describe('ModuleRepository', function () {
 
         describe('on subsequent fetches of a module', function () {
             beforeEach(function () {
-                // Perform the initial fetch
+                // Perform the initial fetch.
                 repository.getModuleFactory('my/first/module/path.php');
             });
 
@@ -154,65 +154,129 @@ describe('ModuleRepository', function () {
             });
 
             it('should not invoke the fetcher again', function () {
-                expect(moduleFactoryFetcher).to.have.been.calledOnce;
+                moduleFactoryFetcher.resetHistory();
+
+                repository.getModuleFactory('my/first/module/path.php');
+
+                expect(moduleFactoryFetcher).not.to.have.been.called;
             });
+        });
+    });
+
+    describe('init()', function () {
+        it('should set the module factory fetcher', function () {
+            var newFetcher = sinon.stub();
+            repository.init(newFetcher);
+
+            moduleFactoryFetcher.resetHistory();
+            repository.moduleExists('my/first/module/path.php');
+
+            expect(moduleFactoryFetcher).not.to.have.been.called;
+            expect(newFetcher).to.have.been.calledOnce;
+            expect(newFetcher).to.have.been.calledWith('my/first/module/path.php', true);
+        });
+    });
+
+    describe('isLoadingModuleFactoryOnly()', function () {
+        it('should return the current loading module factory only state', function () {
+            // Default state should be false.
+            expect(repository.isLoadingModuleFactoryOnly()).to.be.false;
+            repository.getModuleFactory('my/first/module/path.php');
+            // State should be back to false after operation completes.
+            expect(repository.isLoadingModuleFactoryOnly()).to.be.false;
         });
     });
 
     describe('load()', function () {
         var configuredModuleFactory,
-            engine,
             originalModuleFactory;
+
+        beforeEach(function () {
+            originalModuleFactory = sinon.stub();
+            configuredModuleFactory = sinon.stub();
+
+            originalModuleFactory.using = sinon.stub().returns(configuredModuleFactory);
+        });
+
+        it('should return a configured factory', function () {
+            var loadResult;
+            moduleFactoryFetcher
+                .withArgs('my/first/module/path.php', false)
+                .callsFake(function (path) {
+                    loadResult = repository.load(path, 'first-module-id', originalModuleFactory);
+                    return loadResult;
+                });
+
+            repository.getModuleFactory('my/first/module/path.php');
+
+            expect(moduleFactoryFetcher).to.have.been.calledOnce;
+            expect(loadResult).to.equal(configuredModuleFactory);
+        });
+
+        it('should correctly configure the factory with the module path and id', function () {
+            repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory);
+
+            expect(originalModuleFactory.using).to.have.been.calledOnce;
+            expect(originalModuleFactory.using).to.have.been.calledWith({
+                path: 'my/first/module/path.php'
+            });
+        });
+
+        it('should pass the path of the module to [moduleFactory].using(...) as an option', function () {
+            repository.load('my/third/module/path.php', 'second-module-id', originalModuleFactory);
+
+            expect(originalModuleFactory.using).to.have.been.calledWith({
+                path: 'my/third/module/path.php'
+            });
+        });
+    });
+
+    describe('loadBootstrap()', function () {
+        var bootstrapModuleFactory,
+            configuredFactory,
+            engine,
+            bootstrapResult;
 
         beforeEach(function () {
             engine = {
                 execute: sinon.stub()
             };
-            originalModuleFactory = sinon.stub();
-            configuredModuleFactory = sinon.stub();
+            bootstrapResult = {};
+            engine.execute.returns(bootstrapResult);
 
-            originalModuleFactory.using = sinon.stub().returns(configuredModuleFactory);
-            configuredModuleFactory.returns(engine);
+            bootstrapModuleFactory = sinon.stub();
+            configuredFactory = sinon.stub();
+            configuredFactory.returns(engine);
+
+            bootstrapModuleFactory.using = sinon.stub().returns(configuredFactory);
         });
 
-        it('should return a configured factory when in loading mode', function () {
-            var configuredModuleFactory;
-            moduleFactoryFetcher
-                .withArgs('my/first/module/path.php', false)
-                .callsFake(function (path) {
-                    configuredModuleFactory = repository.load(path, 'first-module-id', originalFirstModuleFactory, environment);
+        it('should configure the factory with the module path', function () {
+            repository.loadBootstrap('my/bootstrap/path.php', 'bootstrap-id', bootstrapModuleFactory);
 
-                    return configuredModuleFactory;
-                });
-
-            repository.getModuleFactory('my/first/module/path.php');
-
-            expect(configuredModuleFactory).to.equal(configuredFirstModuleFactory);
+            expect(bootstrapModuleFactory.using).to.have.been.calledOnce;
+            expect(bootstrapModuleFactory.using).to.have.been.calledWith({
+                path: 'my/bootstrap/path.php'
+            });
         });
 
-        it('should execute and return the result of the configured factory when not in loading mode', function () {
-            var result = {};
-            engine.execute.returns(result);
+        it('should store the bootstrap in configuredModules', function () {
+            var bootstrapFn = repository.loadBootstrap('my/bootstrap/path.php', 'bootstrap-id', bootstrapModuleFactory),
+                result;
 
-            expect(repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment))
-                .to.equal(result);
-        });
+            expect(repository.moduleExists('my/bootstrap/path.php')).to.be.true;
 
-        it('should pass the path of the module to [moduleFactory].using(...) as an option', function () {
-            repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment);
+            // Add the bootstrap to the require cache to simulate what would happen in real usage.
+            requireCache['bootstrap-id'] = {
+                exports: configuredFactory
+            };
 
-            expect(originalModuleFactory.using).to.have.been.calledWith(sinon.match({
-                path: 'my/first/module/path.php'
-            }));
-        });
+            result = bootstrapFn(environment);
 
-        it('should pass the Environment through to [moduleFactory].using(...)', function () {
-            repository.load('my/first/module/path.php', 'first-module-id', originalModuleFactory, environment);
-
-            expect(originalModuleFactory.using).to.have.been.calledWith(
-                sinon.match.any,
-                sinon.match.same(environment)
-            );
+            expect(hasOwn.call(requireCache, 'bootstrap-id')).to.be.false;
+            expect(configuredFactory).to.have.been.calledWith({}, environment);
+            expect(engine.execute).to.have.been.calledOnce;
+            expect(result).to.equal(bootstrapResult);
         });
     });
 
@@ -229,11 +293,36 @@ describe('ModuleRepository', function () {
 
         describe('when the module\'s factory has already been fetched', function () {
             it('should return true', function () {
-                // Perform the initial fetch
                 repository.getModuleFactory('my/first/module/path.php');
 
                 expect(repository.moduleExists('my/first/module/path.php')).to.be.true;
             });
+        });
+    });
+
+    describe('unrequire()', function () {
+        it('should throw when the module is not loaded', function () {
+            expect(function () {
+                repository.unrequire('non/existent/module.php');
+            }).to.throw('Module "non/existent/module.php" is not loaded');
+        });
+
+        it('should throw when the module is not in require.cache', function () {
+            repository.load('my/third/module/path.php', 'third-module-id', originalFirstModuleFactory);
+            delete requireCache['third-module-id'];
+
+            expect(function () {
+                repository.unrequire('my/third/module/path.php');
+            }).to.throw('Path "./my/third/module/path.php" (id "third-module-id") is not in require.cache');
+        });
+
+        it('should remove the module from require.cache', function () {
+            repository.load('my/third/module/path.php', 'third-module-id', originalFirstModuleFactory);
+            requireCache['third-module-id'] = {};
+
+            repository.unrequire('my/third/module/path.php');
+
+            expect(hasOwn.call(requireCache, 'third-module-id')).to.be.false;
         });
     });
 });

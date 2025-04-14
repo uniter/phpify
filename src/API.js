@@ -17,7 +17,9 @@ var _ = require('microdash');
  * @param {class} FileSystem
  * @param {class} Loader
  * @param {class} ModuleRepository
+ * @param {class} InitialiserContext
  * @param {EnvironmentProvider} environmentProvider
+ * @param {InitialiserLoader} initialiserLoader
  * @param {ConfigImporter} phpConfigImporter
  * @param {Object} requireCache
  * @constructor
@@ -26,7 +28,9 @@ function API(
     FileSystem,
     Loader,
     ModuleRepository,
+    InitialiserContext,
     environmentProvider,
+    initialiserLoader,
     phpConfigImporter,
     requireCache
 ) {
@@ -38,6 +42,14 @@ function API(
      * @type {class}
      */
     this.FileSystem = FileSystem;
+    /**
+     * @type {class}
+     */
+    this.InitialiserContext = InitialiserContext;
+    /**
+     * @type {InitialiserLoader}
+     */
+    this.initialiserLoader = initialiserLoader;
     /**
      * @type {class}
      */
@@ -59,16 +71,27 @@ function API(
 _.extend(API.prototype, {
     /**
      * Creates a new, isolated Loader along with a FileSystem
-     * and PHPCore/PHPRuntime environment for compiled PHP modules to use
+     * and PHPCore/PHPRuntime environment for compiled PHP modules to use.
      *
      * @returns {Loader}
      */
     createLoader: function () {
         var api = this,
+            initialiserContext = new api.InitialiserContext(),
             moduleRepository = new api.ModuleRepository(api.requireCache),
-            fileSystem = new api.FileSystem(moduleRepository);
+            fileSystem = new api.FileSystem(moduleRepository),
+            loader = new api.Loader(
+                moduleRepository,
+                initialiserContext,
+                fileSystem,
+                api.environmentProvider,
+                api.phpConfigImporter
+            ),
+            initialiser = api.initialiserLoader.loadInitialiser();
 
-        return new api.Loader(moduleRepository, fileSystem, api.environmentProvider, api.phpConfigImporter);
+        initialiser(loader);
+
+        return loader;
     }
 });
 

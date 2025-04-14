@@ -10,6 +10,7 @@
 'use strict';
 
 var _ = require('microdash'),
+    hasOwn = {}.hasOwnProperty,
     path = require('path'),
     Promise = require('lie');
 
@@ -20,6 +21,10 @@ var _ = require('microdash'),
  * @constructor
  */
 function FileSystem(moduleRepository) {
+    /**
+     * @type {Object.<string, string>}
+     */
+    this.files = {};
     /**
      * @type {ModuleRepository}
      */
@@ -70,7 +75,8 @@ _.extend(FileSystem.prototype, {
 
         filePath = fileSystem.realPath(filePath);
 
-        return fileSystem.moduleRepository.moduleExists(filePath);
+        return hasOwn.call(fileSystem.files, filePath) ||
+            fileSystem.moduleRepository.moduleExists(filePath);
     },
 
     /**
@@ -130,6 +136,18 @@ _.extend(FileSystem.prototype, {
      */
     unlinkSync: function (filePath) {
         throw new Error('Could not delete "' + filePath + '" :: not currently supported by PHPify');
+    },
+
+    /**
+     * Writes the contents of a file to the virtual FileSystem.
+     *
+     * @param {string} path
+     * @param {string} contents
+     */
+    writeFile: function (path, contents) {
+        var fileSystem = this;
+
+        fileSystem.files[path] = contents;
     }
 });
 

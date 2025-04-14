@@ -12,14 +12,19 @@
 var _ = require('microdash');
 
 /**
- * Creates the Environment for a loader
+ * Creates the Environment for a loader.
  *
+ * @param {EnvironmentFactory} environmentFactory
  * @param {Object} phpRuntime
  * @param {Performance} performance
  * @param {IO} io
  * @constructor
  */
-function EnvironmentProvider(phpRuntime, performance, io) {
+function EnvironmentProvider(environmentFactory, phpRuntime, performance, io) {
+    /**
+     * @type {EnvironmentFactory}
+     */
+    this.environmentFactory = environmentFactory;
     /**
      * @type {IO}
      */
@@ -36,14 +41,22 @@ function EnvironmentProvider(phpRuntime, performance, io) {
 
 _.extend(EnvironmentProvider.prototype, {
     /**
-     * Creates a new Environment
+     * Creates a new Environment.
      *
+     * @param {ModuleRepository} moduleRepository
+     * @param {InitialiserContext} initialiserContext
      * @param {FileSystem} fileSystem
      * @param {Object} phpifyConfig
      * @param {Object} phpCoreConfig
      * @returns {Environment}
      */
-    createEnvironment: function (fileSystem, phpifyConfig, phpCoreConfig) {
+    createEnvironment: function (
+        moduleRepository,
+        initialiserContext,
+        fileSystem,
+        phpifyConfig,
+        phpCoreConfig
+    ) {
         var provider = this,
             environmentOptions = Object.assign({}, phpCoreConfig, {
                 fileSystem: fileSystem,
@@ -62,18 +75,18 @@ _.extend(EnvironmentProvider.prototype, {
                 performance: provider.performance
             }),
             addons = environmentOptions.addons || [],
-            environment;
+            phpCoreEnvironment;
 
         delete environmentOptions.addons;
 
-        environment = provider.phpRuntime.createEnvironment(
+        phpCoreEnvironment = provider.phpRuntime.createEnvironment(
             environmentOptions,
             addons
         );
 
-        provider.io.install(environment, phpifyConfig);
+        provider.io.install(phpCoreEnvironment, phpifyConfig);
 
-        return environment;
+        return this.environmentFactory.createEnvironment(moduleRepository, initialiserContext, phpCoreEnvironment);
     }
 });
 

@@ -9,13 +9,25 @@
 
 'use strict';
 
-var asyncAPI = require('../../api/async'),
+var asyncAPI,
     expect = require('chai').expect,
+    initialiserLoader = require('../../src/shared/initialiserLoader'),
     phpify = require('../..'),
-    psyncAPI = require('../../api/psync'),
-    syncAPI = require('../../api/sync'),
+    psyncAPI,
+    syncAPI,
     Loader = require('../../src/Loader'),
     TransformerFactory = require('../../src/TransformerFactory');
+
+// Stub the initialiser requirer, because we are not running from a compiled bundle
+// where the initialiser stub PHP file has been specially transpiled.
+initialiserLoader.setRequirer(function () {
+    return function () {};
+});
+
+// Only load the API entrypoints once the initialiser has been stubbed.
+asyncAPI = require('../../api/async');
+psyncAPI = require('../../api/psync');
+syncAPI = require('../../api/sync');
 
 describe('Public API integration', function () {
     it('should export a TransformerFactory as the transformation API', function () {

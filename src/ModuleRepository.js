@@ -25,7 +25,7 @@ function ModuleRepository(requireCache) {
      */
     this.configuredModules = {};
     /**
-     * @type {boolean} Indicates that a module's factory function should be returned without execution
+     * @type {boolean} Indicates that a module's factory function should be returned without execution.
      */
     this.loadingModuleFactoryOnly = false;
     /**
@@ -54,9 +54,7 @@ _.extend(ModuleRepository.prototype, {
      * @throws {Error} Throws when the specified compiled module does not exist
      */
     getModuleFactory: function (filePath) {
-        var cachePath,
-            configuredModule,
-            configuredModuleFactory,
+        var configuredModuleFactory,
             repository = this;
 
         if (hasOwn.call(repository.configuredModules, filePath)) {
@@ -77,7 +75,7 @@ _.extend(ModuleRepository.prototype, {
         }
 
         // By this point, the require()'d module should have called back via .prepare()
-        // [via <Public API::Loader>.run()] and so its wrapper should be in the
+        // [via <Public API::Loader>.run()] and so its wrapper should be in the map.
         if (!hasOwn.call(repository.configuredModules, filePath)) {
             throw new Error('Unexpected state: module "' + filePath + '" should have been loaded by now');
         }
@@ -85,21 +83,11 @@ _.extend(ModuleRepository.prototype, {
             throw new Error('Unexpected state: factory for module "' + filePath + '" loaded incorrectly');
         }
 
-        cachePath = './' + filePath;
-        configuredModule = repository.configuredModules[filePath];
-
-        if (!hasOwn.call(repository.requireCache, configuredModule.id)) {
-            throw new Error(
-                'Expected path "' + cachePath + '" (id "' + configuredModule.id + '") to be in require.cache, ' +
-                'but it was not'
-            );
-        }
-
         // Delete the module's exports object from the cache: it was not executed as we only wanted
         // to extract the factory function, so that will have been stored instead.
         // If the module's factory function is ever needed again, it will be fetched from the
-        // .configuredModules[...] cache instead
-        delete repository.requireCache[configuredModule.id];
+        // .configuredModules[...] cache instead.
+        repository.unrequire(filePath);
 
         return repository.configuredModules[filePath].factory;
     },
@@ -115,32 +103,62 @@ _.extend(ModuleRepository.prototype, {
     },
 
     /**
-     * Configures the environment and path for the given module, and either executes it
-     * and returns the result or just returns the module factory depending on mode.
-     * Used by all compiled PHP modules
+     * Determines whether a module's factory function should be returned without execution.
+     *
+     * @returns {boolean}
+     */
+    isLoadingModuleFactoryOnly: function () {
+        return this.loadingModuleFactoryOnly;
+    },
+
+    /**
+     * Configures the path for the given module,
+     * returning the configured module factory.
      *
      * @param {string} filePath
      * @param {string|number} moduleID
      * @param {Function} moduleFactory
-     * @param {Environment} environment
      * @returns {Function}
      */
-    load: function (filePath, moduleID, moduleFactory, environment) {
+    load: function (filePath, moduleID, moduleFactory) {
         var repository = this,
-            configuredModuleFactory = moduleFactory.using({path: filePath}, environment);
+            configuredModuleFactory = moduleFactory.using({path: filePath});
 
         repository.configuredModules[filePath] = {
             id: moduleID,
             factory: configuredModuleFactory
         };
 
-        if (repository.loadingModuleFactoryOnly) {
-            // Only the factory is needed, don't execute
-            return configuredModuleFactory;
-        }
+        return configuredModuleFactory;
+    },
 
-        // Create, execute and return the result of the module
-        return configuredModuleFactory().execute();
+    /**
+     * Configures the path for the given bootstrap module,
+     * returning a function that will remove the module from the require cache
+     * so that it may separately be run as a standalone module if desired,
+     * and also execute the configured module factory.
+     *
+     * @param {string} filePath
+     * @param {string|number} moduleID
+     * @param {Function} moduleFactory
+     * @returns {Function}
+     */
+    loadBootstrap: function (filePath, moduleID, moduleFactory) {
+        var repository = this,
+            configuredModuleFactory = moduleFactory.using({path: filePath});
+
+        repository.configuredModules[filePath] = {
+            id: moduleID,
+            factory: configuredModuleFactory
+        };
+
+        return function (environment) {
+            // Remove the module from the require cache so that it may be run separately
+            // as a standalone module if desired.
+            repository.unrequire(filePath);
+
+            return configuredModuleFactory({}, environment).execute();
+        };
     },
 
     /**
@@ -161,6 +179,32 @@ _.extend(ModuleRepository.prototype, {
         // To save space in the compiled bundle, the large switch statement with a case for each
         // compiled PHP module doubles as an existence-check (see Transformer for details)
         return repository.moduleFactoryFetcher(filePath, true);
+    },
+
+    /**
+     * Unloads a module from the require cache.
+     *
+     * @param {string} filePath
+     */
+    unrequire: function (filePath) {
+        var cachePath,
+            configuredModule,
+            repository = this;
+
+        if (!hasOwn.call(repository.configuredModules, filePath)) {
+            throw new Error('Module "' + filePath + '" is not loaded');
+        }
+
+        cachePath = './' + filePath;
+        configuredModule = repository.configuredModules[filePath];
+
+        if (!hasOwn.call(repository.requireCache, configuredModule.id)) {
+            throw new Error(
+                'Path "' + cachePath + '" (id "' + configuredModule.id + '") is not in require.cache'
+            );
+        }
+
+        delete repository.requireCache[configuredModule.id];
     }
 });
 

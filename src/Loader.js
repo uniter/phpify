@@ -12,9 +12,10 @@
 var _ = require('microdash');
 
 /**
- * Public API for compiled PHP modules
+ * Public API for compiled PHP modules.
  *
  * @param {ModuleRepository} moduleRepository
+ * @param {InitialiserContext} initialiserContext
  * @param {FileSystem} fileSystem
  * @param {EnvironmentProvider} environmentProvider
  * @param {ConfigImporterInterface} phpConfigImporter
@@ -22,6 +23,7 @@ var _ = require('microdash');
  */
 function Loader(
     moduleRepository,
+    initialiserContext,
     fileSystem,
     environmentProvider,
     phpConfigImporter
@@ -39,6 +41,10 @@ function Loader(
      */
     this.fileSystem = fileSystem;
     /**
+     * @type {InitialiserContext}
+     */
+    this.initialiserContext = initialiserContext;
+    /**
      * @type {ModuleRepository}
      */
     this.moduleRepository = moduleRepository;
@@ -47,36 +53,29 @@ function Loader(
      */
     this.phpConfigImporter = phpConfigImporter;
     /**
-     * @type {Object} Populated from the Initialiser by .configure(...)
+     * @type {Object} Populated from the Initialiser by .configure(...).
      */
     this.phpCoreConfig = {};
     /**
-     * @type {Object} Populated from the Initialiser by .configure(...)
+     * @type {Object} Populated from the Initialiser by .configure(...).
      */
     this.phpifyConfig = {};
 }
 
 _.extend(Loader.prototype, {
     /**
-     * Executes zero or more bootstrap modules within the environment.
+     * Adds zero or more bootstraps to be executed within the environment.
      * Must be done as a separate method call from .installModules(...), as the PHP module factory fetcher
      * function installed needs to be available here, because bootstrap modules may themselves
-     * be PHP modules (useful for including Composer's autoloader, for example)
+     * be PHP modules (useful for including Composer's autoloader, for example).
      *
-     * @param {Function[]} bootstraps
+     * @param {Function} bootstrapFetcher
      * @returns {Loader} For chaining
      */
-    bootstrap: function (bootstraps) {
+    bootstrap: function (bootstrapFetcher) {
         var loader = this;
 
-        // Now execute any bootstraps against the environment, before any modules run
-        bootstraps.forEach(function (bootstrap) {
-            // If the bootstrap returned a function, invoke it with the environment,
-            // otherwise do nothing (the bootstrap module has already had the chance to run)
-            if (typeof bootstrap === 'function') {
-                bootstrap(loader.getEnvironment());
-            }
-        });
+        loader.initialiserContext.bootstrap(bootstrapFetcher);
 
         return loader;
     },
@@ -100,6 +99,33 @@ _.extend(Loader.prototype, {
     },
 
     /**
+     * Creates a new Environment.
+     *
+     * @param {Object=} phpCoreConfig
+     * @param {Object=} phpifyConfig
+     * @returns {Environment}
+     */
+    createEnvironment: function (phpCoreConfig, phpifyConfig) {
+        var addons,
+            loader = this;
+
+        // TODO: Do something better for config merge as in PHPConfig.
+        addons = (loader.phpCoreConfig.addons || []).concat((phpCoreConfig || {}).addons || []);
+        phpCoreConfig = Object.assign({}, loader.phpCoreConfig, phpCoreConfig || {});
+        phpCoreConfig.addons = addons;
+
+        phpifyConfig = Object.assign({}, loader.phpifyConfig, phpifyConfig || {});
+
+        return loader.environmentProvider.createEnvironment(
+            loader.moduleRepository,
+            loader.initialiserContext,
+            loader.fileSystem,
+            phpifyConfig,
+            phpCoreConfig
+        );
+    },
+
+    /**
      * Fetches the Environment for this loader, creating it if necessary
      *
      * @return {Environment}
@@ -108,11 +134,7 @@ _.extend(Loader.prototype, {
         var loader = this;
 
         if (!loader.environment) {
-            loader.environment = loader.environmentProvider.createEnvironment(
-                loader.fileSystem,
-                loader.phpifyConfig,
-                loader.phpCoreConfig
-            );
+            loader.environment = loader.createEnvironment();
         }
 
         return loader.environment;
@@ -164,9 +186,49 @@ _.extend(Loader.prototype, {
      * @param {Function} moduleFactory
      */
     load: function (filePath, module, moduleFactory) {
+        var loader = this,
+            configuredModuleFactory;
+
+        if (loader.initialiserContext.isLoadingBootstraps()) {
+            module.exports = loader.moduleRepository.loadBootstrap(
+                filePath,
+                module.id,
+                moduleFactory
+            );
+
+            return;
+        }
+
+        configuredModuleFactory = loader.moduleRepository.load(
+            filePath,
+            module.id,
+            moduleFactory
+        );
+
+        if (loader.moduleRepository.isLoadingModuleFactoryOnly()) {
+            module.exports = configuredModuleFactory;
+
+            return;
+        }
+
+        // A PHP file has been required from JS-land.
+        module.exports = loader.getEnvironment().requireModule(filePath);
+    },
+
+    /**
+     * Adds files to be stubbed within the virtual filesystem for the environment.
+     *
+     * @param {Object.<string, string>} stubFiles
+     * @returns {Loader} For chaining
+     */
+    stubFiles: function (stubFiles) {
         var loader = this;
 
-        module.exports = loader.moduleRepository.load(filePath, module.id, moduleFactory, loader.getEnvironment());
+        _.forOwn(stubFiles, function (stubFileContents, stubFilePath) {
+            loader.fileSystem.writeFile(stubFilePath, stubFileContents);
+        });
+
+        return loader;
     }
 });
 

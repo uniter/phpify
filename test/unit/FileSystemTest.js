@@ -106,4 +106,59 @@ describe('FileSystem', function () {
             );
         });
     });
+
+    describe('writeFile()', function () {
+        it('should allow files to be detected by isFile()', function () {
+            fileSystem.writeFile('my/file.txt', 'contents');
+
+            expect(fileSystem.isFile('my/file.txt')).to.be.true;
+        });
+
+        it('should allow files to be overwritten and still detected', function () {
+            fileSystem.writeFile('my/file.txt', 'original contents');
+            fileSystem.writeFile('my/file.txt', 'new contents');
+
+            expect(fileSystem.isFile('my/file.txt')).to.be.true;
+        });
+
+        it('should not affect detection of PHP modules', function () {
+            moduleRepository.moduleExists
+                .withArgs('my/module.php')
+                .returns(true);
+
+            fileSystem.writeFile('my/module.php', 'some contents');
+
+            expect(fileSystem.isFile('my/module.php')).to.be.true;
+        });
+
+        it('should not affect detection of non-existent files in other paths', function () {
+            moduleRepository.moduleExists
+                .withArgs('nonexistent/file.txt')
+                .returns(false);
+
+            fileSystem.writeFile('my/file.txt', 'contents');
+
+            expect(fileSystem.isFile('nonexistent/file.txt')).to.be.false;
+        });
+
+        it('should not affect detection of non-existent files in parent directories', function () {
+            moduleRepository.moduleExists
+                .withArgs('../other/file.txt')
+                .returns(false);
+
+            fileSystem.writeFile('my/file.txt', 'contents');
+
+            expect(fileSystem.isFile('../other/file.txt')).to.be.false;
+        });
+
+        it('should not affect detection of non-existent PHP modules', function () {
+            moduleRepository.moduleExists
+                .withArgs('nonexistent/module.php')
+                .returns(false);
+
+            fileSystem.writeFile('my/other.php', 'some contents');
+
+            expect(fileSystem.isFile('nonexistent/module.php')).to.be.false;
+        });
+    });
 });

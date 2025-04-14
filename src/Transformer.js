@@ -14,6 +14,7 @@ var _ = require('microdash'),
     INCLUDE = 'include',
     MODE = 'mode',
     STUB = 'stub',
+    STUB_FILES = 'stubFiles',
     SYNC = 'sync',
     hasOwn = {}.hasOwnProperty,
     nowdoc = require('nowdoc'),
@@ -21,7 +22,7 @@ var _ = require('microdash'),
 
 /**
  * Transforms a PHP module to a CommonJS module suitable for bundling for the browser or Node.js
- * eg. with Browserify or Webpack
+ * e.g. with Browserify or Webpack.
  *
  * @param {Object} phpParser
  * @param {Object} phpToJS
@@ -113,7 +114,7 @@ _.extend(Transformer.prototype, {
             suffixJS;
 
         /**
-         * Performs the actual compilation of a module, unless it was the initialiser module
+         * Performs the actual compilation of a module, unless it was the initialiser module.
          *
          * @param {string} content
          * @param {string} filePath
@@ -125,7 +126,7 @@ _.extend(Transformer.prototype, {
             var phpAST;
 
             // Tell the parser the path to the current file
-            // so it can be included in error messages
+            // so it can be included in error messages.
             transformer.phpParser.getState().setPath(filePath);
 
             phpAST = transformer.phpParser.parse(content);
@@ -141,7 +142,7 @@ _.extend(Transformer.prototype, {
                         'sourceMap': {
                             // Keep the source map data as a separate object and return it to us,
                             // rather than generating a source map comment with it inside,
-                            // so that we can much more efficiently just pass it along to Webpack (for example)
+                            // so that we can much more efficiently just pass it along to Webpack (for example).
                             'returnMap': true,
 
                             'sourceContent': content
@@ -149,9 +150,31 @@ _.extend(Transformer.prototype, {
                     },
                     transformer.phpToJSConfig
                 ),
-                // Any custom rules etc. will need to be specified here instead
+                // Any custom rules etc. will need to be specified here instead.
                 transformer.transpilerConfig
             );
+        }
+
+        function buildStubFiles() {
+            var stubFiles = transformer.phpifyConfig[STUB_FILES] || {},
+                mappedStubFiles = {};
+
+            if (Object.keys(stubFiles).length === 0) {
+                return null;
+            }
+
+            _.forOwn(stubFiles, function (stubFileContents, stubFilePath) {
+                // Stub file paths should be resolved relative to the initialiser,
+                // so that the compiled bundle does not contain absolute paths.
+                var initialiserRelativeStubFilePath = path.relative(
+                        transformer.contextDirectory,
+                        path.resolve(transformer.contextDirectory, stubFilePath)
+                    );
+
+                mappedStubFiles[initialiserRelativeStubFilePath] = stubFileContents;
+            });
+
+            return mappedStubFiles;
         }
 
         /**
@@ -173,12 +196,13 @@ _.extend(Transformer.prototype, {
                     return transformer.contextDirectory + '/' + path;
                 }),
                 files = transformer.globby.sync(globPaths),
-                phpModuleFactories = [];
+                phpModuleFactories = [],
+                stubFiles = buildStubFiles();
 
             _.each(files, function (filePath) {
                 var contextRelativePath = path.relative(transformer.contextDirectory, filePath),
                     // `./` is required for Browserify/Webpack to correctly resolve relative paths -
-                    // paths starting with no dot or slash, eg. `Demo/file.php` were not being found
+                    // paths starting with no dot or slash, e.g. `Demo/file.php` were not being found.
                     initialiserRelativePath = './' + path.relative(path.dirname(file), filePath);
 
                 phpModuleFactories.push(
@@ -188,49 +212,54 @@ _.extend(Transformer.prototype, {
             });
 
             return nowdoc(function () {/*<<<EOS
-require(${apiPath}).installModules(function (path, checkExistence) {
-    var exists = false;
+module.exports = function (loader) {
+    loader.installModules(function (path, checkExistence) {
+        var exists = false;
 
-    function handlePath(aPath) {
-        if (!checkExistence) {
-            return aPath;
+        function handlePath(aPath) {
+            if (!checkExistence) {
+                return aPath;
+            }
+
+            if (aPath === path) {
+                exists = true;
+            }
+
+            // Return something that should not match with the path variable,
+            // so that the case itself is not executed and we eventually
+            // reach the return after the end of the switch.
+            return null;
         }
 
-        if (aPath === path) {
-            exists = true;
+        switch (path) {
+        ${switchCases}
         }
 
-        // Return something that should not match with the path variable,
-        // so that the case itself is not executed and we eventually
-        // reach the return after the end of the switch
-        return null;
-    }
-
-    switch (path) {
-    ${switchCases}
-    }
-
-    return checkExistence ? exists : null;
-})${configureCall}${bootstrapCall};
+        return checkExistence ? exists : null;
+    })${configureCall}${stubFilesCall}${bootstrapCall};
+};
 EOS*/;}, { // jshint ignore:line
-                apiPath: JSON.stringify(apiPath),
                 bootstrapCall:
                     // Optionally add a call to Loader.bootstrap(...) to install the bootstrap
-                    // modules if any have been specified
+                    // modules if any have been specified.
                     bootstraps.length > 0 ?
-                        '\n.bootstrap([' +
+                        '\n    .bootstrap(function () { return [' +
                         bootstraps
                             .map(function (bootstrapPath) {
-                                // Bootstrap paths should be resolved relative to the initialiser
-                                var initialiserRelativeBootstrapPath = './' + path.relative(path.dirname(file), bootstrapPath);
+                                // Bootstrap paths should be resolved relative to the initialiser,
+                                // so that the compiled bundle does not contain absolute paths.
+                                var initialiserRelativeBootstrapPath = './' + path.relative(
+                                    path.dirname(file),
+                                    path.resolve(transformer.contextDirectory, bootstrapPath)
+                                );
 
-                                // NB: ./ is required by bundlers
+                                // NB: ./ is required by bundlers.
                                 return 'require(' + JSON.stringify(initialiserRelativeBootstrapPath) + ')';
                             })
                             .join(', ') +
-                        '])' :
+                        ']; })' :
                         '',
-                configureCall: '\n.configure(' +
+                configureCall: '\n    .configure(' +
                     JSON.stringify({
                         stdio: transformer.phpifyConfig.stdio !== false
                     }) +
@@ -242,7 +271,12 @@ EOS*/;}, { // jshint ignore:line
                         .concat([JSON.stringify(transformer.phpCoreConfig.topLevelConfig)])
                         .join(', ') +
                     '])',
-                switchCases: phpModuleFactories.join('\n    ')
+                // Optionally add a call to Loader.stubFiles(...) to install the stub files
+                // if any have been specified.
+                stubFilesCall: stubFiles !== null ?
+                    '\n    .stubFiles(' + JSON.stringify(stubFiles) + ')' :
+                    '',
+                switchCases: phpModuleFactories.join('\n        ')
             });
         }
 
@@ -254,7 +288,7 @@ EOS*/;}, { // jshint ignore:line
             return {
                 code: buildInitialiser(),
 
-                // No source map to return for the initialiser stub
+                // No source map to return for the initialiser stub.
                 map: null
             };
         }
@@ -263,10 +297,10 @@ EOS*/;}, { // jshint ignore:line
             stub = stubs[relativeFilePath];
 
             if (typeof stub === 'string') {
-                // String values provide some raw PHP source code for the stub
+                // String values provide some raw PHP source code for the stub.
                 content = stub;
             } else if (typeof stub === 'boolean' || typeof stub === 'number' || stub === null) {
-                // Primitive values provide a literal value for the module to return
+                // Primitive values provide a literal value for the module to return.
                 content = '<?php return ' + stub + ';';
             } else {
                 throw new Error(
@@ -275,8 +309,7 @@ EOS*/;}, { // jshint ignore:line
             }
         }
 
-        prefixJS = 'require(' + JSON.stringify(transformer.initialiserStubPath) + ');' +
-            '\nrequire(' +
+        prefixJS = 'require(' +
             JSON.stringify(apiPath) +
             ').load(' +
             JSON.stringify(relativeFilePath) +
