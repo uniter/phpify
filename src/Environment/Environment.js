@@ -41,6 +41,15 @@ function Environment(moduleRepository, initialiserContext, phpCoreEnvironment) {
 
 _.extend(Environment.prototype, {
     /**
+     * Returns the underlying PHPCore environment.
+     *
+     * @returns {Object}
+     */
+    getPhpCoreEnvironment: function () {
+        return this.phpCoreEnvironment;
+    },
+
+    /**
      * Requires a PHP module from JS-land.
      *
      * @param {string} filePath

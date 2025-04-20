@@ -39,6 +39,12 @@ describe('Environment', function () {
         environment = new Environment(moduleRepository, initialiserContext, phpCoreEnvironment);
     });
 
+    describe('getPhpCoreEnvironment()', function () {
+        it('should return the PHPCore environment', function () {
+            expect(environment.getPhpCoreEnvironment()).to.equal(phpCoreEnvironment);
+        });
+    });
+
     describe('requireModule()', function () {
         var executeResult,
             moduleExecutable;
@@ -193,4 +199,4 @@ describe('Environment', function () {
             });
         });
     });
-}); 
+});
