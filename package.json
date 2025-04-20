@@ -31,7 +31,7 @@
     "microdash": "^1.4.2",
     "nowdoc": "~1.0",
     "phpconfig": "^1.0.4",
-    "phpruntime": "^9.2.0",
+    "phpruntime": "^9.2.1",
     "phptoast": "^9.3.0",
     "phptojs": "^10.2.0",
     "require-resolve": "0.0.2"
@@ -40,8 +40,8 @@
     "chai": "^4.3.10",
     "chai-as-promised": "^7.1.1",
     "jshint": "^2.13.6",
-    "mocha": "^10.7.3",
-    "mocha-bootstrap": "^1.0.6",
+    "mocha": "^11.1.0",
+    "mocha-bootstrap": "^1.1.1",
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0"
   },
