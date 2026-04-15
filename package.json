@@ -31,9 +31,9 @@
     "microdash": "^1.4.2",
     "nowdoc": "~1.0",
     "phpconfig": "^1.0.4",
-    "phpruntime": "^9.2.1",
-    "phptoast": "^9.3.0",
-    "phptojs": "^10.2.0",
+    "phpruntime": "^9.3.0",
+    "phptoast": "^9.4.0",
+    "phptojs": "^10.3.0",
     "require-resolve": "0.0.2"
   },
   "devDependencies": {

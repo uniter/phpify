@@ -94,7 +94,7 @@ _.extend(TransformerFactory.prototype, {
             phpToJSConfig,
             transpilerConfig,
             phpCoreConfig,
-            contextDirectory
+            phpifyConfig.rootDir || contextDirectory
         );
     }
 });
